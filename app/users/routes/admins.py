@@ -3,8 +3,8 @@ from uuid import UUID
 from fastapi import Security
 from fastapi.routing import APIRouter
 
-from users.models import Admin, Admin_Pydantic, AdminIn_Pydantic, AdminUpdate
-from auth.utils import (
+from ...users.models import Admin, Admin_Pydantic, AdminIn_Pydantic, AdminUpdate
+from ...auth.utils import (
     authorize_admin_access,
     get_current_user,
     hash_password,

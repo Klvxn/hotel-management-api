@@ -3,7 +3,7 @@ import uuid
 from tortoise import Tortoise, fields, models
 from tortoise.contrib.pydantic import pydantic_model_creator
 
-from users.models import Customer
+from ..users.models import Customer
 
 
 class Room(models.Model):
@@ -14,6 +14,7 @@ class Room(models.Model):
     price = fields.DecimalField(max_digits=5, decimal_places=3)
 
     reservations: fields.ReverseRelation["Reservation"]
+    reviews: fields.ReverseRelation["Review"]
 
     class Meta:
         ordering = ("room_number",)
@@ -38,14 +39,32 @@ class Reservation(models.Model):
     created_at = fields.DatetimeField(auto_now_add=True)
     check_in_date = fields.DatetimeField()
     check_out_date = fields.DatetimeField()
+    customer_checked_out = fields.BooleanField(default=False)
 
     class Meta:
         ordering = ("-created_at",)
 
 
-Tortoise.init_models(["rooms.models", "users.models"], "models")
+class Review(models.Model):
+    id = fields.IntField(pk=True)
+    room = fields.ForeignKeyField(
+        "models.Room", related_name="reviews", on_delete=fields.CASCADE
+    )
+    customer = fields.ForeignKeyField(
+        "models.Customer", related_name="reviews", on_delete=fields.NO_ACTION
+    )
+    created_at = fields.DatetimeField(auto_now_add=True)
+    rating = fields.IntField(default=0)
+    comment = fields.TextField(null=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+
+Tortoise.init_models(["app.rooms.models", "app.users.models"], "models")
 Room_Pydantic = pydantic_model_creator(Room)
 RoomIn_Pydantic = pydantic_model_creator(
-    Room, name="RoomIn", exclude=("id", "booked", "reservations")
+    Room, name="RoomIn", exclude=("id", "booked", "reservations", "reviews")
 )
 Reservation_Pydantic = pydantic_model_creator(Reservation)
+Review_Pydantic = pydantic_model_creator(Review, name="Review")

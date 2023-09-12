@@ -50,15 +50,14 @@ class Customer(BaseUser):
     reservations: fields.ReverseRelation
 
     class PydanticMeta:
-        exclude = ("is_admin",)
+        exclude = ("is_admin", "password_hash")
 
 
 Customer_Pydantic = pydantic_model_creator(
-    Customer, name="Customer", exclude=("password_hash",)
+    Customer,
+    name="Customer",
 )
 CustomerIn_Pydantic = pydantic_model_creator(
     Customer, name="CustomerIn", exclude=("uid", "joined_at")
 )
-CustomerUpdate = pydantic_model_creator(
-    Customer, exclude=("password_hash", "id", "joined_at")
-)
+CustomerUpdate = pydantic_model_creator(Customer, exclude=("uid", "joined_at"))

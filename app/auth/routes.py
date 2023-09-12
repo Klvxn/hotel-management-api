@@ -1,16 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 
-from schemas import TokenResponse
-from users.models import Customer_Pydantic, CustomerIn_Pydantic, Customer
+from ..schemas import TokenResponse
+from ..users.models import Customer_Pydantic, CustomerIn_Pydantic, Customer
 from .utils import (
     ACCESS_TOKEN_EXPIRES,
     ADMIN_SCOPES,
     CUSTOMER_SCOPES,
+    SUPERUSER_SCOPES,
     authenticate_user,
     create_access_token,
     hash_password,
-    SUPERUSER_SCOPES,
 )
 
 auth_router = APIRouter(tags=["Auth"])
@@ -21,7 +21,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     user = await authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=401,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )

@@ -3,9 +3,9 @@ from uuid import UUID
 from fastapi import Security
 from fastapi.routing import APIRouter
 
-from users.models import Admin, BaseUser, Customer, Customer_Pydantic, CustomerUpdate
-from schemas import ReservationSchema
-from auth.utils import get_current_user, authorize_customer_access
+from ...users.models import Admin, BaseUser, Customer, Customer_Pydantic, CustomerUpdate
+from ...schemas import ReservationIn
+from ...auth.utils import get_current_user, authorize_customer_access
 
 customer_router = APIRouter(prefix="/customers", tags=["Customers"])
 
@@ -56,9 +56,7 @@ async def delete_customer(
     return {}
 
 
-@customer_router.get(
-    "/{customer_uid}/reservations", response_model=list[ReservationSchema]
-)
+@customer_router.get("/{customer_uid}/reservations", response_model=list[ReservationIn])
 async def get_customer_reservations(
     customer_uid: UUID,
     current_user: BaseUser = Security(
