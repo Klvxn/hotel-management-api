@@ -14,7 +14,7 @@ from ..rooms.models import (
     Reservation_Pydantic,
     Review_Pydantic,
 )
-from ..schemas import ReservationIn, ReservationUpdate, ReviewUpdate, ReviewIn
+from ..schemas import ReservationIn, ReservationUpdate, ReviewIn
 from ..users.models import Customer, Admin, BaseUser
 
 
@@ -64,7 +64,7 @@ async def delete_room(
     return {}
 
 
-@room_router.get("/{room_id}/reservations", response_model=list[ReservationIn])
+@room_router.get("/{room_id}/reservations")
 async def get_room_reservations(
     room_id: UUID,
     current_user: Admin = Security(get_current_user, scopes=["admin-read"]),
@@ -96,7 +96,7 @@ async def get_all_reservations(
 )
 async def make_reservation(
     reservation: ReservationIn,
-    current_user: BaseUser = Security(get_current_user, scopes=["admin-write"]),
+    current_user: BaseUser = Security(get_current_user, scopes=["customer-write"]),
 ):
     room_number = reservation.room_number
     room = await Room.get_by_room_number(room_number)
@@ -205,7 +205,7 @@ async def get_all_reviews():
 async def add_review(
     room_number: int,
     review: ReviewIn,
-    current_user: BaseUser = Security(get_current_user, scopes=["admin-write"]),
+    current_user: BaseUser = Security(get_current_user, scopes=["customer-write"]),
 ):
     room = await Room.get_by_room_number(room_number)
     reservation = await Reservation.filter(
@@ -230,7 +230,7 @@ async def get_single_review(review_id: int):
 @review_router.put("/reviews/{review_id}", response_model=Review_Pydantic)
 async def update_review(
     review_id: int,
-    review: ReviewUpdate,
+    review: ReviewIn,
     current_user: Customer = Security(get_current_user, scopes=["customer-write"]),
 ):
     review_obj = await Review.get(id=review_id)

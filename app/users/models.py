@@ -1,8 +1,10 @@
 from uuid import uuid4
 from datetime import date
 
-from tortoise import fields, models
+from tortoise import fields, models, Tortoise
 from tortoise.contrib.pydantic import pydantic_model_creator
+
+from ..rooms.models import Reservation
 
 
 class BaseUser(models.Model):
@@ -35,29 +37,28 @@ class Admin(BaseUser):
     is_superuser = fields.BooleanField(default=False)
     is_admin = fields.BooleanField(default=True)
 
-
-Admin_Pydantic = pydantic_model_creator(Admin, name="Admin", exclude=("password_hash",))
-AdminIn_Pydantic = pydantic_model_creator(
-    Admin, name="AdminIn", exclude=("uid", "joined_at")
-)
-AdminUpdate = pydantic_model_creator(
-    Admin, exclude=("password_hash", "id", "joined_at")
-)
+    class PydanticMeta:
+        computed = ("full_name",)
+        exclude = ("password_hash",)
 
 
 class Customer(BaseUser):
     is_admin = fields.BooleanField(default=False)
-    reservations: fields.ReverseRelation
+    reservations: fields.ReverseRelation[Reservation]
 
     class PydanticMeta:
-        exclude = ("is_admin", "password_hash")
+        exclude = ("is_admin", "is_superuser", "password_hash")
+        computed = ("full_name",)
+
+    async def all_active_reservations(self):
+        active = []
+        reservations = await self.reservations.all()
+        for i in reservations:
+            if not i.customer_checked_out:
+                active.append(i)
+        return active
 
 
-Customer_Pydantic = pydantic_model_creator(
-    Customer,
-    name="Customer",
-)
-CustomerIn_Pydantic = pydantic_model_creator(
-    Customer, name="CustomerIn", exclude=("uid", "joined_at")
-)
-CustomerUpdate = pydantic_model_creator(Customer, exclude=("uid", "joined_at"))
+Tortoise.init_models(["app.rooms.models", "app.users.models"], "models")
+Admin_Pydantic = pydantic_model_creator(Admin, name="Admin")
+Customer_Pydantic = pydantic_model_creator(Customer, name="Customer")

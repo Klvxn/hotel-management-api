@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 
-from ..schemas import TokenResponse
-from ..users.models import Customer_Pydantic, CustomerIn_Pydantic, Customer
+from ..schemas import UserIn, TokenResponse
+from ..users.models import Customer_Pydantic, Customer
 from .utils import (
     ACCESS_TOKEN_EXPIRES,
     ADMIN_SCOPES,
@@ -41,9 +41,9 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 
 @auth_router.post("/sign-up", response_model=Customer_Pydantic, status_code=201)
-async def sign_up_new_customers(customer: CustomerIn_Pydantic):
-    password = customer.dict().pop("password_hash")
-    customer_obj = await Customer(**customer.dict(exclude=("password_hash",)))
-    customer_obj.password_hash = hash_password(password)
+async def sign_up_new_customers(customer: UserIn):
+    password = customer.password
+    customer_obj = await Customer(**customer.model_dump(exclude={"password_hash"}))
+    customer_obj.password_hash = hash_password(password.get_secret_value())
     await customer_obj.save()
     return await Customer_Pydantic.from_tortoise_orm(customer_obj)

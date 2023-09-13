@@ -1,8 +1,15 @@
 from datetime import datetime
 from typing import Optional
-from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, model_validator
+
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    Field,
+    SecretStr,
+    model_validator,
+    field_validator,
+)
 
 
 class TokenResponse(BaseModel):
@@ -11,14 +18,25 @@ class TokenResponse(BaseModel):
 
 
 class TokenData(BaseModel):
-    email: str
+    email: EmailStr
     scopes: list[str]
 
 
+class UserIn(BaseModel):
+    first_name: str
+    last_name: str
+    email: EmailStr
+    password: SecretStr = Field(serialization_alias="password_hash")
+
+
+class UserUpdate(BaseModel):
+    first_name: str
+    last_name: str
+    email: EmailStr
+
+
 class ReservationIn(BaseModel):
-    reservation_id: UUID = Field(default_factory=uuid4, serialization_alias="id")
     room_number: int
-    customer_email: Optional[str] = None
     occupants: int
     check_in_date: datetime
     check_out_date: datetime
@@ -34,7 +52,15 @@ class ReservationUpdate(BaseModel):
 class ReviewIn(BaseModel):
     rating: Optional[int] = None
     comment: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow, exclude=True)
+
+    @field_validator("rating")
+    @classmethod
+    def validate_rating_range(cls, value: int):
+        try:
+            assert 0 >= value <= 10
+        except AssertionError:
+            raise ValueError("Rating should be betweeen range 0 and 10")
+        return value
 
     @model_validator(mode="after")
     def check_mutually_exclusive(self):
@@ -46,5 +72,5 @@ class ReviewIn(BaseModel):
 
 
 class ReviewUpdate(BaseModel):
-    rating: int
-    comment: str
+    rating: Optional[int]
+    comment: Optional[str]

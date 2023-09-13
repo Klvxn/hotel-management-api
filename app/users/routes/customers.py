@@ -3,8 +3,8 @@ from uuid import UUID
 from fastapi import Security
 from fastapi.routing import APIRouter
 
-from ...users.models import Admin, BaseUser, Customer, Customer_Pydantic, CustomerUpdate
-from ...schemas import ReservationIn
+from ...users.models import Admin, BaseUser, Customer, Customer_Pydantic
+from ...schemas import ReservationIn, UserUpdate
 from ...auth.utils import get_current_user, authorize_customer_access
 
 customer_router = APIRouter(prefix="/customers", tags=["Customers"])
@@ -31,14 +31,14 @@ async def get_a_customer(
 @customer_router.put("/{customer_uid}", response_model=Customer_Pydantic)
 async def update_customer(
     customer_uid: UUID,
-    customer: CustomerUpdate,
+    customer: UserUpdate,
     current_user: Customer = Security(get_current_user, scopes=["customer-write"]),
 ):
     await authorize_customer_access(
         customer_uid, current_user=current_user, allow_admin=False
     )
     await Customer.filter(uid=customer_uid).update(
-        **customer.dict(exclude=("full_name",))
+        **customer.model_dump(exclude={"full_name"})
     )
     return await Customer_Pydantic.from_queryset_single(Customer.get(uid=customer_uid))
 
