@@ -1,20 +1,14 @@
+from datetime import timedelta
 from uuid import UUID
 
 from fastapi import HTTPException, Security
 from fastapi.routing import APIRouter
 from tortoise.transactions import in_transaction
 
-from ..auth.utils import get_current_user
-from ..rooms.models import (
-    Review,
-    Room,
-    Room_Pydantic,
-    RoomIn_Pydantic,
-    Reservation,
-    Reservation_Pydantic,
-    Review_Pydantic,
-)
-from ..schemas import ReservationIn, ReservationUpdate, ReviewIn
+from ..auth.utils import get_current_active_user
+from ..rooms.models import Review, Room, Reservation
+
+from ..schemas import *
 from ..users.models import Customer, Admin, BaseUser
 
 
@@ -26,14 +20,14 @@ review_router = APIRouter(tags=["Reviews"])
 @room_router.get("/", response_model=list[Room_Pydantic])
 async def get_rooms(booked: bool | None = None):
     if booked:
-        return await Room_Pydantic.from_queryset(Room.filter(booked=booked).all())
+        return await Room_Pydantic.from_queryset(Room.filter(booked=booked))
     return await Room_Pydantic.from_queryset(Room.all())
 
 
 @room_router.post("/", response_model=Room_Pydantic, status_code=201)
 async def create_room(
     room: RoomIn_Pydantic,
-    current_user: Admin = Security(get_current_user, scopes=["admin-write"]),
+    current_user: Admin = Security(get_current_active_user, scopes=["admin-write"]),
 ):
     new_room_obj = await Room.create(**room.dict())
     return await Room_Pydantic.from_tortoise_orm(new_room_obj)
@@ -48,7 +42,7 @@ async def get_single_room(room_id: UUID):
 async def update_room(
     room_id: UUID,
     room: RoomIn_Pydantic,
-    current_user: Admin = Security(get_current_user, scopes=["admin-write"]),
+    current_user: Admin = Security(get_current_active_user, scopes=["admin-write"]),
 ):
     await Room.filter(id=room_id).update(**room.dict())
     return await Room_Pydantic.from_queryset_single(Room.get(id=room_id))
@@ -57,53 +51,70 @@ async def update_room(
 @room_router.delete("/{room_id}", status_code=204)
 async def delete_room(
     room_id: UUID,
-    current_user: Admin = Security(get_current_user, scopes=["admin-write"]),
+    current_user: Admin = Security(get_current_active_user, scopes=["admin-write"]),
 ):
     room_obj = await Room.get(id=room_id)
     await room_obj.delete()
     return {}
 
 
-@room_router.get("/{room_id}/reservations")
-async def get_room_reservations(
+@room_router.get("/{room_id}/reservations", response_model=list[ReservationHistory])
+async def room_reservations_history(
     room_id: UUID,
-    current_user: Admin = Security(get_current_user, scopes=["admin-read"]),
+    current_user: Admin = Security(get_current_active_user, scopes=["admin-read"]),
 ):
     room_obj = await Room.get(id=room_id)
-    return (
-        await Reservation.filter(room=room_obj)
-        .all()
-        .values(
-            "check_in_date",
-            "check_out_date",
-            "occupants",
-            reservation_id="id",
-            room_number="room__room_number",
-            customer_email="customer__email",
-        )
-    )
+    room_reservations = await room_obj.reservations.all()
+    return [ReservationHistory.model_validate(reservation) for reservation in room_reservations]
+        
+
+@room_router.get("/{room_number}/guests", response_model=RoomGuests)
+async def room_guests(
+    room_number: int,
+    current_user: Admin = Security(get_current_active_user, scopes=["admin-read"]),
+):
+    room = await Room.get_by_room_number(room_number)
+    reservations = await Reservation.filter(room=room).prefetch_related("customer")
+    data = []
+    for reservation in reservations:
+        data = RoomGuests(
+            id=reservation.room.id,
+            room_number=reservation.room.room_number,
+            customers=[UserUpdate(
+                first_name=reservation.customer.first_name,
+                last_name=reservation.customer.last_name,
+                email=reservation.customer.email,
+            )]
+        ) 
+ 
+    return data
 
 
 @reservation_router.get("/reservations", response_model=list[Reservation_Pydantic])
 async def get_all_reservations(
-    current_user: Admin = Security(get_current_user, scopes=["admin-read"])
+    current_user: Admin = Security(get_current_active_user, scopes=["admin-read"])
 ):
     return await Reservation_Pydantic.from_queryset(Reservation.all())
 
 
-@reservation_router.post(
-    "/reservations", response_model=Reservation_Pydantic, status_code=201
-)
+@reservation_router.post("/reservations", response_model=Reservation_Pydantic, status_code=201)
 async def make_reservation(
     reservation: ReservationIn,
-    current_user: BaseUser = Security(get_current_user, scopes=["customer-write"]),
+    current_user: BaseUser = Security(
+        get_current_active_user, scopes=["customer-write"]
+    ),
 ):
     room_number = reservation.room_number
     room = await Room.get_by_room_number(room_number)
-    if room.booked:
-        raise HTTPException(400, "Room has already been booked")
-    check_in = reservation.check_in_date
-    check_out = reservation.check_out_date
+    check_in = reservation.check_in_date.replace(second=0, microsecond=0, tzinfo=None)
+    check_out = reservation.check_out_date.replace(second=0, microsecond=0, tzinfo=None)
+    print(check_in.microsecond)
+    last_reservation = await Reservation.filter(room_id=room.id, customer_checked_out=False).first()
+    if room.booked or check_in <= last_reservation.check_out_date + timedelta(hours=2):
+        raise HTTPException(
+            400, 
+            f"Room is currently unavailable between {check_in} and {check_out}. Adjust your check in and check out dates"
+        )
     if not check_in < check_out:
         raise HTTPException(400, "Invalid check in and check out dates")
     reservation = reservation.model_dump(exclude={"room_number"}, by_alias=True)
@@ -116,13 +127,11 @@ async def make_reservation(
         return await Reservation_Pydantic.from_tortoise_orm(new_reservation)
 
 
-@reservation_router.get(
-    "/reservations/{reservation_id}", response_model=Reservation_Pydantic
-)
+@reservation_router.get("/reservations/{reservation_id}", response_model=Reservation_Pydantic)
 async def get_single_reservation(
     reservation_id: UUID,
     current_user: BaseUser = Security(
-        get_current_user, scopes=["admin-read", "customer-read"]
+        get_current_active_user, scopes=["admin-read", "customer-read"]
     ),
 ):
     reservation_obj = await Reservation.get(id=reservation_id)
@@ -136,13 +145,13 @@ async def get_single_reservation(
     )
 
 
-@reservation_router.put(
-    "/reservations/{reservation_id}", response_model=Reservation_Pydantic
-)
+@reservation_router.put("/reservations/{reservation_id}", response_model=Reservation_Pydantic)
 async def update_reservation(
     reservation_id: UUID,
     reservation: ReservationUpdate,
-    current_user: Customer = Security(get_current_user, scopes=["customer-write"]),
+    current_user: Customer = Security(
+        get_current_active_user, scopes=["customer-write"]
+    ),
 ):
     room_number = reservation.room_number
     room = await Room.get_by_room_number(room_number)
@@ -161,13 +170,11 @@ async def update_reservation(
     )
 
 
-@reservation_router.put(
-    "/reservations/{reservation_id}/checked_out", response_model=dict
-)
+@reservation_router.put("/reservations/{reservation_id}/checked_out", response_model=dict)
 async def update_customer_checked_out(
     reservation_id: UUID,
     data: dict,
-    current_user: Admin = Security(get_current_user, scopes=["admin-write"]),
+    current_user: Admin = Security(get_current_active_user, scopes=["admin-write"]),
 ):
     reservation = await Reservation.get(id=reservation_id)
     await reservation.update_from_dict(**data).save()
@@ -178,7 +185,7 @@ async def update_customer_checked_out(
 async def delete_reservation(
     reservation_id: UUID,
     current_user: BaseUser = Security(
-        get_current_user, scopes=["admin-write", "customer-write"]
+        get_current_active_user, scopes=["admin-write", "customer-write"]
     ),
 ):
     reservation_obj = await Reservation.get(id=reservation_id)
@@ -199,13 +206,13 @@ async def get_all_reviews():
     return await Review_Pydantic.from_queryset(Review.all())
 
 
-@review_router.post(
-    "/reviews/{room_number}", response_model=Review_Pydantic, status_code=201
-)
+@review_router.post("/reviews/{room_number}", response_model=Review_Pydantic, status_code=201)
 async def add_review(
     room_number: int,
     review: ReviewIn,
-    current_user: BaseUser = Security(get_current_user, scopes=["customer-write"]),
+    current_user: BaseUser = Security(
+        get_current_active_user, scopes=["customer-write"]
+    ),
 ):
     room = await Room.get_by_room_number(room_number)
     reservation = await Reservation.filter(
@@ -231,7 +238,9 @@ async def get_single_review(review_id: int):
 async def update_review(
     review_id: int,
     review: ReviewIn,
-    current_user: Customer = Security(get_current_user, scopes=["customer-write"]),
+    current_user: Customer = Security(
+        get_current_active_user, scopes=["customer-write"]
+    ),
 ):
     review_obj = await Review.get(id=review_id)
     try:
@@ -246,7 +255,7 @@ async def update_review(
 async def delete_review(
     review_id: int,
     current_user: BaseUser = Security(
-        get_current_user, scopes=["admin-write", "customer-write"]
+        get_current_active_user, scopes=["admin-write", "customer-write"]
     ),
 ):
     review_obj = await Review.get(id=review_id)

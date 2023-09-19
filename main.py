@@ -2,8 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from tortoise.contrib.fastapi import register_tortoise
 
-from app.users.models import Admin, Customer
-from app.rooms.models import Reservation, Review, Room
 from app.auth.routes import auth_router
 from app.rooms.routes import room_router, reservation_router, review_router
 from app.users.routes.admins import admin_router
@@ -32,8 +30,8 @@ api.add_middleware(
 
 register_tortoise(
     api,
-    db_url="sqlite://db.sqlite",
+    db_url="sqlite://db.sqlite3",
     modules={"models": ["app.rooms.models", "app.users.models"]},
-    generate_schemas=True,
+    generate_schemas=False,
     add_exception_handlers=True,
 )

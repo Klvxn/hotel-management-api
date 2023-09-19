@@ -1,7 +1,6 @@
 import uuid
 
 from tortoise import fields, models
-from tortoise.contrib.pydantic import pydantic_model_creator
 
 
 class Room(models.Model):
@@ -69,11 +68,3 @@ class Review(models.Model):
 
     class Meta:
         ordering = ("-created_at",)
-
-
-Room_Pydantic = pydantic_model_creator(Room)
-RoomIn_Pydantic = pydantic_model_creator(
-    Room, name="RoomIn", exclude=("id", "booked", "reservations", "reviews")
-)
-Reservation_Pydantic = pydantic_model_creator(Reservation)
-Review_Pydantic = pydantic_model_creator(Review, name="Review")

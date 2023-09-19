@@ -1,8 +1,7 @@
 from uuid import uuid4
 from datetime import date
 
-from tortoise import fields, models, Tortoise
-from tortoise.contrib.pydantic import pydantic_model_creator
+from tortoise import fields, models
 
 from ..rooms.models import Reservation
 
@@ -14,6 +13,7 @@ class BaseUser(models.Model):
     email = fields.CharField(max_length=100, unique=True, index=True)
     password_hash = fields.CharField(max_length=200, unique=True)
     joined_at = fields.DateField(default=date.today)
+    is_active = fields.BooleanField(default=True)
 
     class Meta:
         abstract = True
@@ -57,8 +57,3 @@ class Customer(BaseUser):
             if not i.customer_checked_out:
                 active.append(i)
         return active
-
-
-Tortoise.init_models(["app.rooms.models", "app.users.models"], "models")
-Admin_Pydantic = pydantic_model_creator(Admin, name="Admin")
-Customer_Pydantic = pydantic_model_creator(Customer, name="Customer")

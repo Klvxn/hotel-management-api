@@ -3,13 +3,9 @@ from uuid import UUID
 from fastapi import Security
 from fastapi.routing import APIRouter
 
-from ...schemas import UserIn, UserUpdate
-from ...users.models import Admin, Admin_Pydantic
-from ...auth.utils import (
-    authorize_admin_access,
-    get_current_user,
-    hash_password,
-)
+from ...schemas import Admin_Pydantic, UserIn, UserUpdate
+from ...users.models import Admin
+from ...auth.utils import authorize_admin_access, get_current_active_user, hash_password
 
 
 admin_router = APIRouter(prefix="/org/private/admins", tags=["Admin"])
@@ -17,7 +13,7 @@ admin_router = APIRouter(prefix="/org/private/admins", tags=["Admin"])
 
 @admin_router.get("/", response_model=list[Admin_Pydantic])
 async def get_all_admins(
-    current_user: Admin = Security(get_current_user, scopes=["superuser-read"])
+    current_user: Admin = Security(get_current_active_user, scopes=["superuser-read"])
 ):
     return await Admin_Pydantic.from_queryset(Admin.all())
 
@@ -35,7 +31,7 @@ async def sign_up_admins(admin: UserIn):
 async def get_an_admin(
     admin_uid: UUID,
     current_user: Admin = Security(
-        get_current_user, scopes=["admin-read", "superuser-read"]
+        get_current_active_user, scopes=["admin-read", "superuser-read"]
     ),
 ):
     await authorize_admin_access(admin_uid, current_user)
@@ -46,10 +42,10 @@ async def get_an_admin(
 async def update_admin(
     admin_uid: UUID,
     admin: UserUpdate,
-    current_user: Admin = Security(get_current_user, scopes=["admin-write"]),
+    current_user: Admin = Security(get_current_active_user, scopes=["admin-write"]),
 ):
     await authorize_admin_access(admin_uid, current_user)
-    await Admin.filter(uid=admin_uid).update(**admin.dict(exclude=("full_name",)))
+    await Admin.filter(uid=admin_uid).update(**admin.model_dump(exclude={"full_name"}))
     return await Admin_Pydantic.from_queryset_single(Admin.get(uid=admin_uid))
 
 
@@ -57,7 +53,7 @@ async def update_admin(
 async def delete_admin(
     admin_uid: UUID,
     current_user: Admin = Security(
-        get_current_user, scopes=["admin-write", "superuser-write"]
+        get_current_active_user, scopes=["admin-write", "superuser-write"]
     ),
 ):
     admin_obj = await Admin.get(uid=admin_uid)

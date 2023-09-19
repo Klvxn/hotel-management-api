@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 
-from ..schemas import UserIn, TokenResponse
-from ..users.models import Customer_Pydantic, Customer
+from ..schemas import Customer_Pydantic, UserIn, TokenResponse
+from ..users.models import Customer
 from .utils import (
     ACCESS_TOKEN_EXPIRES,
     ADMIN_SCOPES,
