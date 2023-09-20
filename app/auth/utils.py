@@ -11,6 +11,7 @@ from passlib.context import CryptContext
 from ..schemas import TokenData
 from ..users.models import Admin, Customer, BaseUser
 
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 ADMIN_SCOPES = {
@@ -30,9 +31,9 @@ SUPERUSER_SCOPES = {
 
 scopes = {**ADMIN_SCOPES, **CUSTOMER_SCOPES, **SUPERUSER_SCOPES}
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login/t", scopes=scopes)
-SECRET_KEY = "7fe16232dbd9feb253d7f171eaceebb2c7f98a4a238a1bd9483c7bebd2e379a3"
+SECRET_KEY = "secret_key"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRES = timedelta(minutes=100)
+ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
 
 
 def verify_password(plain_password: str, hashed_password):

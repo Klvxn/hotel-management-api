@@ -13,6 +13,7 @@ from .utils import (
     hash_password,
 )
 
+
 auth_router = APIRouter(tags=["Auth"])
 
 

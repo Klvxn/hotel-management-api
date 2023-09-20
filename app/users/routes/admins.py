@@ -32,7 +32,7 @@ async def get_an_admin(
     admin_uid: UUID,
     current_user: Admin = Security(
         get_current_active_user, scopes=["admin-read", "superuser-read"]
-    ),
+    )
 ):
     await authorize_admin_access(admin_uid, current_user)
     return await Admin_Pydantic.from_queryset_single(Admin.get(uid=admin_uid))
@@ -42,7 +42,7 @@ async def get_an_admin(
 async def update_admin(
     admin_uid: UUID,
     admin: UserUpdate,
-    current_user: Admin = Security(get_current_active_user, scopes=["admin-write"]),
+    current_user: Admin = Security(get_current_active_user, scopes=["admin-write"])
 ):
     await authorize_admin_access(admin_uid, current_user)
     await Admin.filter(uid=admin_uid).update(**admin.model_dump(exclude={"full_name"}))
@@ -54,7 +54,7 @@ async def delete_admin(
     admin_uid: UUID,
     current_user: Admin = Security(
         get_current_active_user, scopes=["admin-write", "superuser-write"]
-    ),
+    )
 ):
     admin_obj = await Admin.get(uid=admin_uid)
     await authorize_admin_access(admin_uid, current_user)

@@ -3,9 +3,10 @@ from uuid import UUID
 from fastapi import Security
 from fastapi.routing import APIRouter
 
-from ...users.models import Admin, BaseUser, Customer
+from ...auth.utils import authorize_customer_access, get_current_active_user
 from ...schemas import Customer_Pydantic, ReservationHistory, UserUpdate
-from ...auth.utils import get_current_active_user, authorize_customer_access
+from ...users.models import Admin, BaseUser, Customer
+
 
 customer_router = APIRouter(prefix="/customers", tags=["Customers"])
 
@@ -22,7 +23,7 @@ async def get_a_customer(
     customer_uid: UUID,
     current_user: BaseUser = Security(
         get_current_active_user, scopes=["admin-read", "customer-read"]
-    ),
+    )
 ):
     await authorize_customer_access(customer_uid, current_user=current_user)
     return await Customer_Pydantic.from_queryset_single(Customer.get(uid=customer_uid))
@@ -32,9 +33,7 @@ async def get_a_customer(
 async def update_customer(
     customer_uid: UUID,
     customer: UserUpdate,
-    current_user: Customer = Security(
-        get_current_active_user, scopes=["customer-write"]
-    ),
+    current_user: Customer = Security(get_current_active_user, scopes=["customer-write"])
 ):
     await authorize_customer_access(
         customer_uid, current_user=current_user, allow_admin=False
@@ -50,7 +49,7 @@ async def delete_customer(
     customer_uid: UUID,
     current_user: BaseUser = Security(
         get_current_active_user, scopes=["admin-write", "customer-write"]
-    ),
+    )
 ):
     customer_obj = await Customer.get(uid=customer_uid)
     await authorize_customer_access(customer_uid, current_user)
@@ -63,7 +62,7 @@ async def customer_reservations_history(
     customer_uid: UUID,
     current_user: BaseUser = Security(
         get_current_active_user, scopes=["admin-read", "customer-read"]
-    ),
+    )
 ):
     customer_obj = await Customer.get(uid=customer_uid)
     await authorize_customer_access(customer_uid, current_user=current_user)

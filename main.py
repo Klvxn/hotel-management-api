@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from tortoise import Tortoise
 from tortoise.contrib.fastapi import register_tortoise
 
 from app.auth.routes import auth_router
@@ -28,10 +29,29 @@ api.add_middleware(
     allow_methods=["*"],
 )
 
+
+TORTOISE_ORM = {
+    "connections": {
+        "default": {
+            "engine": "tortoise.backends.sqlite",
+            "credentials": {"file_path": "db.sqlite3"},
+        },
+    },    
+    "apps": {
+        "models": {
+            "models": ["app.rooms.models", "app.users.models", "aerich.models"],
+            "default_connection": "default",
+        },
+    },
+}
+
+
+async def init():
+    await Tortoise.init(config=TORTOISE_ORM, use_tz=True, timezone="WAT")
+    
+
 register_tortoise(
     api,
-    db_url="sqlite://db.sqlite3",
-    modules={"models": ["app.rooms.models", "app.users.models"]},
-    generate_schemas=False,
-    add_exception_handlers=True,
+    config=TORTOISE_ORM,
+    add_exception_handlers=True
 )

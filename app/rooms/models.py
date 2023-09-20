@@ -1,10 +1,18 @@
 import uuid
+from decimal import Decimal
+from enum import Enum
 
 from tortoise import fields, models
 
 
 class Room(models.Model):
+    
+    class RoomType(str, Enum):
+        STANDARD = "standard"
+        DELUXE = "deluxe"
+        SUITE = "suite"
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    room_type = fields.CharEnumField(RoomType, max_length=10, null=True)
     room_number = fields.IntField(index=True, unique=True)
     booked = fields.BooleanField(default=False)
     capacity = fields.CharField(max_length=500)
@@ -19,7 +27,7 @@ class Room(models.Model):
         ordering = ("room_number",)
 
     def __str__(self) -> str:
-        return f"Room: {self.room_number}"
+        return f"<Room: {self.room_number}>"
 
     @classmethod
     async def get_by_room_number(cls, room_number: int):
@@ -44,14 +52,11 @@ class Reservation(models.Model):
         ordering = ("-created_at",)
 
     class PydanticMeta:
-        computed = ("total_amount",)
+        computed = ("total_due",)
 
-    def total_amount(self):
-        rooms = self.room.all()
-        amt = 0
-        for room in rooms:
-            amt += room.price
-        return amt
+    def total_due(self) -> Decimal:
+        duration_of_stay = self.check_out_date - self.check_in_date
+        return self.room.price * duration_of_stay.days if duration_of_stay.days else self.room.price
 
 
 class Review(models.Model):

@@ -26,7 +26,7 @@ class BaseUser(models.Model):
         return f"{self.first_name} {self.last_name}"
 
     def __str__(self):
-        return self.full_name()
+        return f"<{self.__class__.__name__}: {self.full_name()}>"
 
     @classmethod
     async def get_by_email(cls, email: str):
