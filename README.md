@@ -21,11 +21,11 @@ To use the Hotel Management API, you'll need Python 3.8 or higher. You can set u
 
 ```
 git clone https://github.com/Klvxn/hotel-management-api
-    ```
+```
 
     2. Create a virtual environment:
 
-    ```bash
+    ```
     python -m venv venv
     ```
 
@@ -33,19 +33,19 @@ git clone https://github.com/Klvxn/hotel-management-api
 
     - Windows:
 
-    ```bash
+    ```
     .\venv\Scripts\activate
     ```
 
     - macOS and Linux:
 
-    ```bash
+    ```
     source venv/bin/activate
     ```
 
     4. Install the required dependencies:
 
-    ```bash
+    ```
     pip install -r requirements.txt
     ```
 
@@ -53,7 +53,7 @@ git clone https://github.com/Klvxn/hotel-management-api
 
     6. Run the API:
 
-    ```bash
+    ```
     uvicorn main:app --reload
     ```
 
