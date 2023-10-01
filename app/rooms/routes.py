@@ -6,7 +6,7 @@ from fastapi import HTTPException, Security
 from fastapi.routing import APIRouter
 from tortoise.transactions import in_transaction
 
-from ..auth.utils import get_current_active_user
+from ..auth.utils import authorize_obj_access, get_current_active_user
 from ..rooms.models import Review, Room, Reservation
 from ..schemas import *
 from ..users.models import Customer, Admin, BaseUser
@@ -27,7 +27,7 @@ async def get_rooms(
         filters["booked"] = booked
     if room_type:
         filters["room_type"] = room_type
-    query = query.filter(room_type="standard") if filters else query
+    query = query.filter(**filters) if filters else query
     return await Room_Pydantic.from_queryset(query)
 
 
@@ -109,12 +109,14 @@ async def make_reservation(
     check_in = reservation.check_in_date.replace(second=0, microsecond=0, tzinfo=None)
     check_out = reservation.check_out_date.replace(second=0, microsecond=0, tzinfo=None)
     last_reservation = await Reservation.filter(room_id=room.id, customer_checked_out=False).first()
-    if room.booked or check_in <= last_reservation.check_out_date + timedelta(hours=2):
-        raise HTTPException(
-            400, 
-            f"Room is currently unavailable between {check_in} and {check_out}. Adjust your check in and check out dates"
-        )
-    if not check_in < check_out:
+    if last_reservation:
+        last_reservation_check_out = last_reservation.check_out_date.replace(tzinfo=None)
+        if check_in <= last_reservation_check_out + timedelta(hours=2):
+            raise HTTPException(
+                400, 
+                f"Room is currently unavailable between {check_in} and {check_out}. Adjust your check in and check out dates"
+            )
+    if not check_in < check_out or datetime.now() > check_in:
         raise HTTPException(400, "Invalid check in and check out dates")
     reservation = reservation.model_dump(exclude={"room_number"})
     async with in_transaction():
@@ -135,10 +137,7 @@ async def get_single_reservation(
 ):
     reservation_obj = await Reservation.get(id=reservation_id).select_related("customer")
     if not current_user.is_admin:
-        try:
-            assert current_user == reservation_obj.customer
-        except AssertionError:
-            raise HTTPException(403, "Unauthorized access")
+        await authorize_obj_access(reservation_obj, current_user)
     return await Reservation_Pydantic.from_queryset_single(Reservation.get(id=reservation_id))
 
 
@@ -151,10 +150,7 @@ async def update_reservation(
     room_number = reservation.room_number
     room = await Room.get_by_room_number(room_number)
     reservation_obj = await Reservation.get(id=reservation_id).select_related("customer")
-    try:
-        assert current_user == reservation_obj.customer
-    except AssertionError:
-        raise HTTPException(403, "Unauthorized access")
+    await authorize_obj_access(reservation_obj, current_user)
     await Reservation.filter(id=reservation_id).update(
         **reservation.model_dump(exclude={"room_number"}),
         customer=await reservation_obj.customer,
@@ -183,10 +179,7 @@ async def delete_reservation(
 ):
     reservation_obj = await Reservation.get(id=reservation_id).prefetch_related("room", "customer")
     if not current_user.is_admin:
-        try:
-            assert current_user == reservation_obj.customer
-        except AssertionError:
-            raise HTTPException(403, "Unauthorized access")
+        await authorize_obj_access(reservation_obj, current_user)
     async with in_transaction():
         room = reservation_obj.room
         await room.update_from_dict({"booked": False}).save()
@@ -229,10 +222,7 @@ async def update_review(
     current_user: Customer = Security(get_current_active_user, scopes=["customer-write"])
 ):
     review_obj = await Review.get(id=review_id).select_related("customer")
-    try:
-        assert current_user == review_obj.customer
-    except AssertionError:
-        raise HTTPException(403, "Unauthorized access")
+    await authorize_obj_access(review_obj, current_user)
     await Review.filter(id=review_id).update(**review.model_dump())
     return await Review_Pydantic.from_queryset_single(Review.get(id=review_id))
 
@@ -246,9 +236,6 @@ async def delete_review(
 ):
     review_obj = await Review.get(id=review_id).select_related("customer")
     if not current_user.is_admin:
-        try:
-            assert current_user == review_obj.customer
-        except AssertionError:
-            raise HTTPException(403, "Unauthorized access")
+        await authorize_obj_access(review_obj, current_user)
     await review_obj.delete()
     return {}

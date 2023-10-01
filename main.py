@@ -4,6 +4,7 @@ from tortoise import Tortoise
 from tortoise.contrib.fastapi import register_tortoise
 
 from app.auth.routes import auth_router
+from app.checkout.routes import checkout_router, invoice_router
 from app.rooms.routes import room_router, reservation_router, review_router
 from app.users.routes.admins import admin_router
 from app.users.routes.customers import customer_router
@@ -21,6 +22,8 @@ api.include_router(customer_router)
 api.include_router(room_router)
 api.include_router(reservation_router)
 api.include_router(review_router)
+api.include_router(checkout_router)
+api.include_router(invoice_router)
 api.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:8080"],
@@ -39,7 +42,12 @@ TORTOISE_ORM = {
     },    
     "apps": {
         "models": {
-            "models": ["app.rooms.models", "app.users.models", "aerich.models"],
+            "models": [
+                "app.rooms.models",
+                "app.users.models",
+                "app.checkout.models",
+                "aerich.models"
+            ],
             "default_connection": "default",
         },
     },

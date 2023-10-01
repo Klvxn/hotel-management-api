@@ -1,6 +1,4 @@
-import os
 from datetime import datetime, timedelta
-from uuid import UUID
 
 from fastapi import Depends, status
 from fastapi.exceptions import HTTPException
@@ -8,7 +6,10 @@ from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 
+from app.rooms.models import Reservation, Review
+
 from ..schemas import TokenData
+from ..config import settings
 from ..users.models import Admin, Customer, BaseUser
 
 
@@ -31,9 +32,6 @@ SUPERUSER_SCOPES = {
 
 scopes = {**ADMIN_SCOPES, **CUSTOMER_SCOPES, **SUPERUSER_SCOPES}
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login/t", scopes=scopes)
-SECRET_KEY = "secret_key"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
 
 
 def verify_password(plain_password: str, hashed_password):
@@ -49,10 +47,10 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     expire = (
         datetime.utcnow() + expires_delta
         if expires_delta
-        else datetime.utcnow() + ACCESS_TOKEN_EXPIRES
+        else datetime.utcnow() + settings.ACCESS_TOKEN_EXPIRES
     )
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
 
@@ -96,7 +94,7 @@ async def get_current_user(
         headers=headers,
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
@@ -120,37 +118,26 @@ async def get_current_active_user(current_user: Customer = Depends(get_current_u
     return current_user
 
 
-async def authorize_customer_access(
-    customer_uid: UUID,
+async def authorize_obj_access(
+    obj: BaseUser | Reservation | Review,
     current_user: BaseUser,
-    allow_admin: bool = True,
-    allow_only_superuser: bool = True,
+    allow_superuser: bool = True,
 ):
-    if isinstance(current_user, Admin):
-        if allow_admin and current_user.is_admin:
-            return True
-        if allow_only_superuser and current_user.is_superuser:
-            return True
-        raise HTTPException(403, "Unauthorized access")
-    customer_obj = await Customer.get(uid=customer_uid)
-    try:
-        if isinstance(customer_obj, Customer):
-            assert customer_obj == current_user
-            return True
-    except AssertionError:
-        raise HTTPException(403, "Unauthorized access")
-
-
-async def authorize_admin_access(
-    admin_uid: UUID,
-    current_user: Admin,
-    allow_only_superuser: bool = True,
-):
-    admin_obj = await Admin.get(uid=admin_uid)
-    if allow_only_superuser and current_user.is_superuser:
+    if allow_superuser and current_user.is_superuser:
         return True
+    if isinstance(obj, BaseUser):
+        return await authorize_user_access(obj, current_user)
     try:
-        assert admin_obj == current_user
+        assert obj.customer == current_user
         return True
     except AssertionError:
         raise HTTPException(403, "Unauthorized access")
+    
+    
+async def authorize_user_access(obj: BaseUser, current_user: BaseUser):
+    try:
+        assert obj == current_user
+        return True
+    except AssertionError:
+        raise HTTPException(403, "Unauthorized access")
+    

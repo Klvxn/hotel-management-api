@@ -13,11 +13,16 @@ from pydantic import (
 from tortoise import Tortoise
 from tortoise.contrib.pydantic import pydantic_model_creator
 
+from .checkout.models import Invoice
 from .rooms.models import Reservation, Review, Room
 from .users.models import Admin, Customer
 
 
-Tortoise.init_models(["app.rooms.models", "app.users.models"], "models")
+Tortoise.init_models([
+    "app.rooms.models",
+    "app.users.models",
+    "app.checkout.models"
+], "models")
 
 Room_Pydantic = pydantic_model_creator(Room)
 RoomIn_Pydantic = pydantic_model_creator(
@@ -27,6 +32,7 @@ Reservation_Pydantic = pydantic_model_creator(Reservation)
 Review_Pydantic = pydantic_model_creator(Review, name="Review")
 Admin_Pydantic = pydantic_model_creator(Admin, name="Admin")
 Customer_Pydantic = pydantic_model_creator(Customer, name="Customer")
+Invoice_Pydantic = pydantic_model_creator(Invoice)
 
 
 class TokenResponse(BaseModel):
@@ -106,3 +112,7 @@ class RoomGuests(BaseModel):
     id: UUID
     room_number: int
     customers: list[UserUpdate]
+    
+    
+class InvoiceUpdate(BaseModel):
+    email: EmailStr

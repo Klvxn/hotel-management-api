@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 
+from ..config import settings
 from ..schemas import Customer_Pydantic, UserIn, TokenResponse
 from ..users.models import Customer
 from .utils import (
-    ACCESS_TOKEN_EXPIRES,
     ADMIN_SCOPES,
     CUSTOMER_SCOPES,
     SUPERUSER_SCOPES,
@@ -36,7 +36,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             scopes = list(SUPERUSER_SCOPES.keys())
     access_token = create_access_token(
         data={"sub": user.email, "scopes": scopes},
-        expires_delta=ACCESS_TOKEN_EXPIRES,
+        expires_delta=settings.ACCESS_TOKEN_EXPIRES,
     )
     return {"access_token": access_token, "token_type": "bearer"}
 

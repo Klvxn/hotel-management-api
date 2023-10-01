@@ -14,6 +14,8 @@ class BaseUser(models.Model):
     password_hash = fields.CharField(max_length=200, unique=True)
     joined_at = fields.DateField(default=date.today)
     is_active = fields.BooleanField(default=True)
+    is_admin = fields.BooleanField(default=False)
+    is_superuser = fields.BooleanField(default=False)
 
     class Meta:
         abstract = True
@@ -34,7 +36,6 @@ class BaseUser(models.Model):
 
 
 class Admin(BaseUser):
-    is_superuser = fields.BooleanField(default=False)
     is_admin = fields.BooleanField(default=True)
 
     class PydanticMeta:
@@ -43,7 +44,6 @@ class Admin(BaseUser):
 
 
 class Customer(BaseUser):
-    is_admin = fields.BooleanField(default=False)
     reservations: fields.ReverseRelation[Reservation]
 
     class PydanticMeta:

@@ -3,8 +3,9 @@ from uuid import UUID
 from fastapi import Security
 from fastapi.routing import APIRouter
 
-from ...auth.utils import authorize_customer_access, get_current_active_user
-from ...schemas import Customer_Pydantic, ReservationHistory, UserUpdate
+from ...auth.utils import authorize_obj_access, get_current_active_user
+from ...checkout.models import Invoice
+from ...schemas import Customer_Pydantic, Invoice_Pydantic, ReservationHistory, UserUpdate
 from ...users.models import Admin, BaseUser, Customer
 
 
@@ -25,7 +26,8 @@ async def get_a_customer(
         get_current_active_user, scopes=["admin-read", "customer-read"]
     )
 ):
-    await authorize_customer_access(customer_uid, current_user=current_user)
+    customer_obj = await Customer.get(uid=customer_uid)
+    await authorize_obj_access(customer_obj, current_user)    
     return await Customer_Pydantic.from_queryset_single(Customer.get(uid=customer_uid))
 
 
@@ -35,9 +37,8 @@ async def update_customer(
     customer: UserUpdate,
     current_user: Customer = Security(get_current_active_user, scopes=["customer-write"])
 ):
-    await authorize_customer_access(
-        customer_uid, current_user=current_user, allow_admin=False
-    )
+    customer_obj = await Customer.get(uid=customer_uid)
+    await authorize_obj_access(customer_obj, current_user)
     await Customer.filter(uid=customer_uid).update(
         **customer.model_dump(exclude={"full_name"})
     )
@@ -52,19 +53,29 @@ async def delete_customer(
     )
 ):
     customer_obj = await Customer.get(uid=customer_uid)
-    await authorize_customer_access(customer_uid, current_user)
+    await authorize_obj_access(customer_obj, current_user)
     await customer_obj.delete()
     return {}
 
 
 @customer_router.get("/{customer_uid}/reservations", response_model=list[ReservationHistory])
-async def customer_reservations_history(
+async def customer_reservations(
     customer_uid: UUID,
-    current_user: BaseUser = Security(
-        get_current_active_user, scopes=["admin-read", "customer-read"]
+    current_user: Customer = Security(
+        get_current_active_user, scopes=["customer-read"]
     )
 ):
     customer_obj = await Customer.get(uid=customer_uid)
-    await authorize_customer_access(customer_uid, current_user=current_user)
+    await authorize_obj_access(customer_obj, current_user)
     customer_reservations = await customer_obj.reservations.all()
     return [ReservationHistory.model_validate(reservation) for reservation in customer_reservations]
+
+
+@customer_router.get("/{customer_uid}/invoices", response_model=list[Invoice_Pydantic])
+async def get_customer_invoices(
+    customer_uid: UUID,
+    current_user: Customer = Security(get_current_active_user, scopes=["customer-read"]
+)):
+    customer_obj = await Customer.get(uid=customer_uid)
+    await authorize_obj_access(customer_obj, current_user)
+    return await Invoice_Pydantic.from_queryset(Invoice.filter(customer_email=customer_obj.email))

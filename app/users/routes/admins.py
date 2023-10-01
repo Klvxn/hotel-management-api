@@ -5,7 +5,7 @@ from fastapi.routing import APIRouter
 
 from ...schemas import Admin_Pydantic, UserIn, UserUpdate
 from ...users.models import Admin
-from ...auth.utils import authorize_admin_access, get_current_active_user, hash_password
+from ...auth.utils import authorize_obj_access, get_current_active_user, hash_password
 
 
 admin_router = APIRouter(prefix="/org/private/admins", tags=["Admin"])
@@ -34,7 +34,8 @@ async def get_an_admin(
         get_current_active_user, scopes=["admin-read", "superuser-read"]
     )
 ):
-    await authorize_admin_access(admin_uid, current_user)
+    admin_obj = await Admin.get(uid=admin_uid)
+    await authorize_obj_access(admin_obj, current_user)
     return await Admin_Pydantic.from_queryset_single(Admin.get(uid=admin_uid))
 
 
@@ -44,7 +45,8 @@ async def update_admin(
     admin: UserUpdate,
     current_user: Admin = Security(get_current_active_user, scopes=["admin-write"])
 ):
-    await authorize_admin_access(admin_uid, current_user)
+    admin_obj = await Admin.get(uid=admin_uid)
+    await authorize_obj_access(admin_obj, current_user)
     await Admin.filter(uid=admin_uid).update(**admin.model_dump(exclude={"full_name"}))
     return await Admin_Pydantic.from_queryset_single(Admin.get(uid=admin_uid))
 
@@ -57,6 +59,6 @@ async def delete_admin(
     )
 ):
     admin_obj = await Admin.get(uid=admin_uid)
-    await authorize_admin_access(admin_uid, current_user)
+    await authorize_obj_access(admin_obj, current_user)
     await admin_obj.delete()
     return {}

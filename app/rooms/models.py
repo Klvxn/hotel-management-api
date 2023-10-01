@@ -8,9 +8,9 @@ from tortoise import fields, models
 class Room(models.Model):
     
     class RoomType(str, Enum):
-        STANDARD = "standard"
-        DELUXE = "deluxe"
-        SUITE = "suite"
+        STANDARD = "Standard"
+        DELUXE = "Deluxe"
+        SUITE = "Suite"
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
     room_type = fields.CharEnumField(RoomType, max_length=10, null=True)
     room_number = fields.IntField(index=True, unique=True)
@@ -53,10 +53,12 @@ class Reservation(models.Model):
 
     class PydanticMeta:
         computed = ("total_due",)
-
-    def total_due(self) -> Decimal:
+        
+    async def total_due(self):
+        room = await self.room
+        print(room)
         duration_of_stay = self.check_out_date - self.check_in_date
-        return self.room.price * duration_of_stay.days if duration_of_stay.days else self.room.price
+        return room.price * duration_of_stay.days if duration_of_stay.days else room.price
 
 
 class Review(models.Model):
