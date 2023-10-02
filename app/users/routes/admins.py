@@ -30,9 +30,7 @@ async def sign_up_admins(admin: UserIn):
 @admin_router.get("/{admin_uid}", response_model=Admin_Pydantic)
 async def get_an_admin(
     admin_uid: UUID,
-    current_user: Admin = Security(
-        get_current_active_user, scopes=["admin-read", "superuser-read"]
-    )
+    current_user: Admin = Security(get_current_active_user, scopes=["admin-read"])
 ):
     admin_obj = await Admin.get(uid=admin_uid)
     await authorize_obj_access(admin_obj, current_user)
@@ -48,6 +46,16 @@ async def update_admin(
     admin_obj = await Admin.get(uid=admin_uid)
     await authorize_obj_access(admin_obj, current_user)
     await Admin.filter(uid=admin_uid).update(**admin.model_dump(exclude={"full_name"}))
+    return await Admin_Pydantic.from_queryset_single(Admin.get(uid=admin_uid))
+
+
+@admin_router.patch("/{customer_uid}", response_model=Admin_Pydantic)
+async def update_admin_active_status(
+    admin_uid: UUID,
+    admin: dict[str, bool],
+    current_user: Admin = Security(get_current_active_user, scopes=["superuser-write"])
+):
+    await Admin.filter(uid=admin_uid).update(**admin)
     return await Admin_Pydantic.from_queryset_single(Admin.get(uid=admin_uid))
 
 

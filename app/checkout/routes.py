@@ -23,7 +23,7 @@ stripe.api_key = settings.stripe_secret_key
 async def get_invoices(
     status: Optional[PaidStatus] = None,
     customer_email: Optional[str] = None,
-    # current_user: Admin = Security(get_current_active_user, scopes=["admin-read"])
+    current_user: Admin = Security(get_current_active_user, scopes=["admin-read"])
 ):
     query = Invoice.all()
     if status:
@@ -36,7 +36,7 @@ async def get_invoices(
 @invoice_router.get("/{invoice_id}", response_model=Invoice_Pydantic)
 async def get_invoice(
     invoice_id: UUID, 
-    current_user: BaseUser = Security(get_current_active_user, scopes=["admin-read", "customer-read"])
+    current_user: BaseUser = Security(get_current_active_user)
 ):
     invoice = await Invoice.get(id=invoice_id)
     if not current_user.is_admin:
@@ -50,7 +50,7 @@ async def get_invoice(
 @invoice_router.post("/{reservation_id}")
 async def create_invoice(
     reservation_id: UUID,
-    current_user: Customer = Security(get_current_active_user, scopes=["customer-write"])
+    current_user: Customer = Security(get_current_active_user)
 ):
     reservation = await Reservation.get(id=reservation_id).prefetch_related("customer")
     invoice = await Invoice.create(
@@ -65,7 +65,7 @@ async def create_invoice(
 async def update_invoice_customer_email(
     invoice_id: UUID,
     invoice: InvoiceUpdate,
-    current_user: Customer = Security(get_current_active_user, scopes=["customer-write"])
+    current_user: Customer = Security(get_current_active_user)
 ):
     invoice_obj = await Invoice.get(id=invoice_id)
     customer = await Customer.get(email=invoice_obj.customer_email)
@@ -88,7 +88,7 @@ async def delete_invoice(
 @checkout_router.post("/session/{invoice_id}")
 async def make_invoice_payment(
     invoice_id: UUID,
-    current_user: Customer = Security(get_current_active_user, scopes=["customer-write"])
+    current_user: Customer = Security(get_current_active_user)
 ):
     invoice = await Invoice.get(id=invoice_id)
     reservation = await Reservation.get(id=invoice.reservations_id).prefetch_related("room", "customer")
@@ -149,7 +149,7 @@ async def make_invoice_payment(
 @checkout_router.get("/success", response_model=dict[str, str])
 async def payment_successful(
     session_id: Optional[str] = None, 
-    current_user: Customer = Security(get_current_active_user, scopes=["customer-write"])
+    current_user: Customer = Security(get_current_active_user)
 ):
     invoice = await Invoice.get(transaction_id=session_id)
     invoice.status = PaidStatus.paid
@@ -158,7 +158,5 @@ async def payment_successful(
 
 
 @checkout_router.get("/cancelled", response_model=dict[str, str])
-async def payment_cancelled(
-    current_user: Customer = Security(get_current_active_user, scopes=["customer-write"])
-):
+async def payment_cancelled(current_user: Customer = Security(get_current_active_user)):
     return {"message": "Payment Cancelled"}

@@ -102,7 +102,7 @@ async def get_all_reservations(
 @reservation_router.post("/reservations", response_model=Reservation_Pydantic, status_code=201)
 async def make_reservation(
     reservation: ReservationIn,
-    current_user: BaseUser = Security(get_current_active_user, scopes=["customer-write"])
+    current_user: BaseUser = Security(get_current_active_user)
 ):
     room_number = reservation.room_number
     room = await Room.get_by_room_number(room_number)
@@ -111,7 +111,7 @@ async def make_reservation(
     last_reservation = await Reservation.filter(room_id=room.id, customer_checked_out=False).first()
     if last_reservation:
         last_reservation_check_out = last_reservation.check_out_date.replace(tzinfo=None)
-        if check_in <= last_reservation_check_out + timedelta(hours=2):
+        if room.booked or check_in <= last_reservation_check_out + timedelta(hours=2):
             raise HTTPException(
                 400, 
                 f"Room is currently unavailable between {check_in} and {check_out}. Adjust your check in and check out dates"
@@ -130,10 +130,7 @@ async def make_reservation(
 
 @reservation_router.get("/reservations/{reservation_id}", response_model=Reservation_Pydantic)
 async def get_single_reservation(
-    reservation_id: UUID,
-    current_user: BaseUser = Security(
-        get_current_active_user, scopes=["admin-read", "customer-read"]
-    )
+    reservation_id: UUID, current_user: BaseUser = Security(get_current_active_user)
 ):
     reservation_obj = await Reservation.get(id=reservation_id).select_related("customer")
     if not current_user.is_admin:
@@ -145,7 +142,7 @@ async def get_single_reservation(
 async def update_reservation(
     reservation_id: UUID,
     reservation: ReservationUpdate,
-    current_user: Customer = Security(get_current_active_user, scopes=["customer-write"])
+    current_user: Customer = Security(get_current_active_user)
 ):
     room_number = reservation.room_number
     room = await Room.get_by_room_number(room_number)
@@ -162,7 +159,7 @@ async def update_reservation(
 @reservation_router.put("/reservations/{reservation_id}/checked_out", response_model=dict)
 async def update_customer_checked_out(
     reservation_id: UUID,
-    data: dict,
+    data: dict[str, bool],
     current_user: Admin = Security(get_current_active_user, scopes=["admin-write"])
 ):
     reservation = await Reservation.get(id=reservation_id)
@@ -173,9 +170,7 @@ async def update_customer_checked_out(
 @reservation_router.delete("/reservations/{reservation_id}", status_code=204)
 async def delete_reservation(
     reservation_id: UUID,
-    current_user: BaseUser = Security(
-        get_current_active_user, scopes=["admin-write", "customer-write"]
-    )
+    current_user: BaseUser = Security(get_current_active_user)
 ):
     reservation_obj = await Reservation.get(id=reservation_id).prefetch_related("room", "customer")
     if not current_user.is_admin:
@@ -196,7 +191,7 @@ async def get_all_reviews():
 async def add_review(
     room_number: int,
     review: ReviewIn,
-    current_user: BaseUser = Security(get_current_active_user, scopes=["customer-write"])
+    current_user: BaseUser = Security(get_current_active_user)
 ):
     room = await Room.get_by_room_number(room_number)
     reservation = await Reservation.filter(room_id=room.id, customer_id=current_user.uid).first()
@@ -219,7 +214,7 @@ async def get_single_review(review_id: int):
 async def update_review(
     review_id: int,
     review: ReviewIn,
-    current_user: Customer = Security(get_current_active_user, scopes=["customer-write"])
+    current_user: Customer = Security(get_current_active_user)
 ):
     review_obj = await Review.get(id=review_id).select_related("customer")
     await authorize_obj_access(review_obj, current_user)
@@ -229,10 +224,7 @@ async def update_review(
 
 @review_router.delete("/reviews/{review_id}", status_code=204)
 async def delete_review(
-    review_id: int,
-    current_user: BaseUser = Security(
-        get_current_active_user, scopes=["admin-write", "customer-write"]
-    )
+    review_id: int, current_user: BaseUser = Security(get_current_active_user)
 ):
     review_obj = await Review.get(id=review_id).select_related("customer")
     if not current_user.is_admin:

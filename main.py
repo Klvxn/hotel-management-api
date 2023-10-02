@@ -5,6 +5,7 @@ from tortoise.contrib.fastapi import register_tortoise
 
 from app.auth.routes import auth_router
 from app.checkout.routes import checkout_router, invoice_router
+from app.config import settings
 from app.rooms.routes import room_router, reservation_router, review_router
 from app.users.routes.admins import admin_router
 from app.users.routes.customers import customer_router
@@ -33,33 +34,12 @@ api.add_middleware(
 )
 
 
-TORTOISE_ORM = {
-    "connections": {
-        "default": {
-            "engine": "tortoise.backends.sqlite",
-            "credentials": {"file_path": "db.sqlite3"},
-        },
-    },    
-    "apps": {
-        "models": {
-            "models": [
-                "app.rooms.models",
-                "app.users.models",
-                "app.checkout.models",
-                "aerich.models"
-            ],
-            "default_connection": "default",
-        },
-    },
-}
-
-
 async def init():
-    await Tortoise.init(config=TORTOISE_ORM, use_tz=True, timezone="WAT")
+    await Tortoise.init(config=settings.TORTOISE_CONFIG, use_tz=True, timezone="WAT")
     
 
 register_tortoise(
     api,
-    config=TORTOISE_ORM,
+    config=settings.TORTOISE_CONFIG,
     add_exception_handlers=True
 )

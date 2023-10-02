@@ -22,12 +22,11 @@ async def get_customers(
 @customer_router.get("/{customer_uid}", response_model=Customer_Pydantic)
 async def get_a_customer(
     customer_uid: UUID,
-    current_user: BaseUser = Security(
-        get_current_active_user, scopes=["admin-read", "customer-read"]
-    )
+    current_user: BaseUser = Security(get_current_active_user)
 ):
-    customer_obj = await Customer.get(uid=customer_uid)
-    await authorize_obj_access(customer_obj, current_user)    
+    if not current_user.is_admin:
+        customer_obj = await Customer.get(uid=customer_uid)
+        await authorize_obj_access(customer_obj, current_user)    
     return await Customer_Pydantic.from_queryset_single(Customer.get(uid=customer_uid))
 
 
@@ -35,7 +34,7 @@ async def get_a_customer(
 async def update_customer(
     customer_uid: UUID,
     customer: UserUpdate,
-    current_user: Customer = Security(get_current_active_user, scopes=["customer-write"])
+    current_user: Customer = Security(get_current_active_user)
 ):
     customer_obj = await Customer.get(uid=customer_uid)
     await authorize_obj_access(customer_obj, current_user)
@@ -45,37 +44,44 @@ async def update_customer(
     return await Customer_Pydantic.from_queryset_single(Customer.get(uid=customer_uid))
 
 
+@customer_router.patch("/{customer_uid}", response_model=Customer_Pydantic)
+async def update_customer_active_status(
+    customer_uid: UUID,
+    customer: dict[str, bool],
+    current_user: Admin = Security(get_current_active_user, scopes=["admin-write"])
+):
+    await Customer.filter(uid=customer_uid).update(**customer)
+    return await Customer_Pydantic.from_queryset_single(Customer.get(uid=customer_uid))
+
+
 @customer_router.delete("/{customer_uid}", status_code=204)
 async def delete_customer(
-    customer_uid: UUID,
-    current_user: BaseUser = Security(
-        get_current_active_user, scopes=["admin-write", "customer-write"]
-    )
+    customer_uid: UUID, current_user: BaseUser = Security(get_current_active_user)
 ):
     customer_obj = await Customer.get(uid=customer_uid)
-    await authorize_obj_access(customer_obj, current_user)
+    if not customer_obj.is_admin:
+        await authorize_obj_access(customer_obj, current_user)
     await customer_obj.delete()
     return {}
 
 
 @customer_router.get("/{customer_uid}/reservations", response_model=list[ReservationHistory])
-async def customer_reservations(
+async def get_customer_reservations(
     customer_uid: UUID,
-    current_user: Customer = Security(
-        get_current_active_user, scopes=["customer-read"]
-    )
+    current_user: Customer = Security(get_current_active_user)
 ):
     customer_obj = await Customer.get(uid=customer_uid)
-    await authorize_obj_access(customer_obj, current_user)
+    if not current_user.is_admin:
+        await authorize_obj_access(customer_obj, current_user)
     customer_reservations = await customer_obj.reservations.all()
     return [ReservationHistory.model_validate(reservation) for reservation in customer_reservations]
 
 
 @customer_router.get("/{customer_uid}/invoices", response_model=list[Invoice_Pydantic])
 async def get_customer_invoices(
-    customer_uid: UUID,
-    current_user: Customer = Security(get_current_active_user, scopes=["customer-read"]
-)):
+    customer_uid: UUID, current_user: Customer = Security(get_current_active_user)
+):
     customer_obj = await Customer.get(uid=customer_uid)
-    await authorize_obj_access(customer_obj, current_user)
+    if not current_user.is_admin:
+        await authorize_obj_access(customer_obj, current_user)
     return await Invoice_Pydantic.from_queryset(Invoice.filter(customer_email=customer_obj.email))

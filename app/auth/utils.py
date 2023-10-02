@@ -19,18 +19,12 @@ ADMIN_SCOPES = {
     "admin-read": "admin read only role",
     "admin-write": "admin write only role",
 }
-CUSTOMER_SCOPES = {
-    "customer-read": "customer read only role",
-    "customer-write": "customer write only role",
-}
 SUPERUSER_SCOPES = {
     "superuser-read": "super user read access",
     "superuser-write": "super user write access",
-    **ADMIN_SCOPES,
-    **CUSTOMER_SCOPES,
 }
 
-scopes = {**ADMIN_SCOPES, **CUSTOMER_SCOPES, **SUPERUSER_SCOPES}
+scopes = {**ADMIN_SCOPES, **SUPERUSER_SCOPES}
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login/t", scopes=scopes)
 
 

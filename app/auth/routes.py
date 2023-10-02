@@ -6,7 +6,6 @@ from ..schemas import Customer_Pydantic, UserIn, TokenResponse
 from ..users.models import Customer
 from .utils import (
     ADMIN_SCOPES,
-    CUSTOMER_SCOPES,
     SUPERUSER_SCOPES,
     authenticate_user,
     create_access_token,
@@ -29,7 +28,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     scopes = form_data.scopes
     if not scopes:
         if not user.is_admin:
-            scopes = list(CUSTOMER_SCOPES.keys())
+            scopes = None
         elif not user.is_superuser:
             scopes = list(ADMIN_SCOPES.keys())
         else:
