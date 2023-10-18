@@ -86,7 +86,7 @@ async def delete_invoice(
 
 
 @checkout_router.post("/session/{invoice_id}")
-async def make_invoice_payment(
+async def create_checkout_session(
     invoice_id: UUID,
     current_user: Customer = Security(get_current_active_user)
 ):

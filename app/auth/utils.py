@@ -100,8 +100,8 @@ async def get_current_user(
     user = await verify_user(data.email)
     if not user:
         raise credentials_exception
-    for i in security_scope.scopes:
-        if i in data.scopes:
+    for scope in security_scope.scopes:
+        if scope in data.scopes:
             return user
     raise scope_exception
 
