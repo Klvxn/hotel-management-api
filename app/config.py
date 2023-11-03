@@ -4,6 +4,7 @@ from pydantic import EmailStr
 from pydantic_settings import BaseSettings
 
 
+
 class Settings(BaseSettings):
     api_key: str = "my_key"
     superuser_email: EmailStr = "johndoe@example.com"
@@ -12,12 +13,13 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "secret_key"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRES: timedelta = timedelta(hours=1)
-    TORTOISE_CONFIG: dict[str, dict] = {
+    tortoise_config: dict[str, dict] = {
         "connections": {
             "default": {
                 "engine": "tortoise.backends.sqlite",
                 "credentials": {"file_path": "db.sqlite3"},
             },
+            "postgres": "postgres://postgres:postgres@127.0.0.1:5432/hotel_database",
         },
         "apps": {
             "models": {
@@ -27,7 +29,7 @@ class Settings(BaseSettings):
                     "app.checkout.models",
                     "aerich.models",
                 ],
-                "default_connection": "default",
+                "default_connection": "postgres",
             },
         },
     }

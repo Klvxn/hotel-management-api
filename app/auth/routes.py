@@ -3,12 +3,13 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from ..config import settings
 from ..schemas import Customer_Pydantic, UserIn, TokenResponse
-from ..users.models import Customer
+from ..users.models import BaseUser, Customer
 from .utils import (
     ADMIN_SCOPES,
     SUPERUSER_SCOPES,
     authenticate_user,
     create_access_token,
+    get_current_active_user,
     hash_password,
 )
 
@@ -47,3 +48,9 @@ async def sign_up_new_customers(customer: UserIn):
     customer_obj.password_hash = hash_password(password.get_secret_value())
     await customer_obj.save()
     return await Customer_Pydantic.from_tortoise_orm(customer_obj)
+
+
+@auth_router.post("/log-out")
+async def log_out(current_user: BaseUser = Depends(get_current_active_user)):
+    
+    return {"message": "Logged out successfully"}

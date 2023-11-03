@@ -17,6 +17,8 @@ reservation_router = APIRouter(tags=["Reservations"])
 review_router = APIRouter(tags=["Reviews"])
 
 
+# --- Room end points ---
+
 @room_router.get("/", response_model=list[Room_Pydantic])
 async def get_rooms(
     booked: Optional[bool] = None, room_type: Optional[Room.RoomType] = None
@@ -71,8 +73,11 @@ async def room_reservations_history(
     current_user: Admin = Security(get_current_active_user, scopes=["admin-read"])
 ):
     room_obj = await Room.get(id=room_id).prefetch_related("reservations")
-    return [ReservationHistory.model_validate(reservation) for reservation in await room_obj.reservations]
-        
+    return [
+        ReservationHistory.model_validate(reservation)
+        for reservation in await room_obj.reservations
+    ]
+
 
 @room_router.get("/{room_number}/guests", response_model=RoomGuests)
 async def room_guests(
@@ -84,13 +89,19 @@ async def room_guests(
     return RoomGuests(
         id=room.id,
         room_number=room.room_number,
-        customers=[UserUpdate(
-            first_name=reservation.customer.first_name,
-            last_name=reservation.customer.last_name,
-            email=reservation.customer.email,
-        ) for reservation in reservations]   
+        customers=[
+            UserUpdate(
+                first_name=reservation.customer.first_name,
+                last_name=reservation.customer.last_name,
+                email=reservation.customer.email,
+            )
+            for reservation in reservations
+        ],
     )
 
+
+
+# --- Reservation end points ---
 
 @reservation_router.get("/reservations", response_model=list[Reservation_Pydantic])
 async def get_all_reservations(
@@ -113,8 +124,8 @@ async def make_reservation(
         last_reservation_check_out = last_reservation.check_out_date.replace(tzinfo=None)
         if room.booked or check_in <= last_reservation_check_out + timedelta(hours=2):
             raise HTTPException(
-                400, 
-                f"Room is currently unavailable between {check_in} and {check_out}. Adjust your check in and check out dates"
+                400,
+                f"Room is currently unavailable between {check_in} and {check_out}. Adjust your check in and check out dates",
             )
     if not check_in < check_out or datetime.now() > check_in:
         raise HTTPException(400, "Invalid check in and check out dates")
@@ -181,6 +192,9 @@ async def delete_reservation(
         await reservation_obj.delete()
         return {}
 
+
+
+# --- Review end points ---
 
 @review_router.get("/reviews", response_model=list[Review_Pydantic])
 async def get_all_reviews():

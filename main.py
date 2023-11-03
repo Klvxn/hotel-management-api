@@ -33,13 +33,14 @@ api.add_middleware(
     allow_methods=["*"],
 )
 
+TORTOISE_ORM = settings.tortoise_config
 
 async def init():
-    await Tortoise.init(config=settings.TORTOISE_CONFIG, use_tz=True, timezone="WAT")
+    await Tortoise.init(config=TORTOISE_ORM, use_tz=True, timezone="WAT")
     
 
 register_tortoise(
     api,
-    config=settings.TORTOISE_CONFIG,
+    config=TORTOISE_ORM,
     add_exception_handlers=True
 )
