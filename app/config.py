@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "secret_key"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRES: timedelta = timedelta(hours=1)
-    tortoise_config: dict[str, dict] = {
+    tortoise_config: dict = {
         "connections": {
             "default": {
                 "engine": "tortoise.backends.sqlite",

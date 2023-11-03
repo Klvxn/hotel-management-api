@@ -29,7 +29,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     scopes = form_data.scopes
     if not scopes:
         if not user.is_admin:
-            scopes = None
+            scopes = ["customer-read-write"]
         elif not user.is_superuser:
             scopes = list(ADMIN_SCOPES.keys())
         else:

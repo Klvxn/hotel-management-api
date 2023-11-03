@@ -45,15 +45,10 @@ class Admin(BaseUser):
 
 class Customer(BaseUser):
     reservations: fields.ReverseRelation[Reservation]
+    is_superuser = None
 
     class PydanticMeta:
-        exclude = ("is_admin", "is_superuser", "password_hash")
+        exclude = ("is_admin", "password_hash")
         computed = ("full_name",)
 
-    async def all_active_reservations(self):
-        active = []
-        reservations = await self.reservations.all()
-        for i in reservations:
-            if not i.customer_checked_out:
-                active.append(i)
-        return active
+    

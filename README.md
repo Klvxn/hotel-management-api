@@ -69,6 +69,36 @@ The API provides the following endpoints:
 - **Reservations**: Create and manage reservations for hotel rooms.
 - **Reviews**: Create and view reviews for hotel rooms.
 
+Brief descriptions of each endpoint are provided below.
+
+    Room end points
+
+    Endpoints for rooms are as follows:
+        - GET /rooms: Get all rooms
+        - POST /rooms: Create a new room
+        - GET /rooms/{room_id}: Get a single room
+        - PUT /rooms/{room_id}: Update a single room
+        - DELETE /rooms/{room_id}: Delete a single room
+        - GET /rooms/{room_id}/reservations: Get all reservations for a room
+        - GET /rooms/{room_number}/guests: Get all guests for a room
+        - GET /rooms/{room_number}/reviews: Get all reviews for a room
+        - GET /rooms/{room_number}/invoices: Get all invoices for a room
+
+    
+    Reservation end points
+
+    Endpoints for reservations are as follows:
+        - GET /reservations: Get all reservations    
+        - POST /reservations: Create a new reservation
+        - GET /reservations/{reservation_id}: Get a single reservation
+        - PUT /reservations/{reservation_id}: Update a single reservation
+        - DELETE /reservations/{reservation_id}: Delete a single reservation
+        - PUT /reservations/{reservation_id}/checked_out: Update a reservation to checked out
+
+    
+
+    
+
 For detailed information on each endpoint, see the [API documentation](#api-documentation).
 
 ### Authentication

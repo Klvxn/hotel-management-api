@@ -100,7 +100,6 @@ async def room_guests(
     )
 
 
-
 # --- Reservation end points ---
 
 @reservation_router.get("/reservations", response_model=list[Reservation_Pydantic])
@@ -191,7 +190,6 @@ async def delete_reservation(
         await room.update_from_dict({"booked": False}).save()
         await reservation_obj.delete()
         return {}
-
 
 
 # --- Review end points ---

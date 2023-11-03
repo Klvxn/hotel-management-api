@@ -48,7 +48,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     return encoded_jwt
 
 
-# TODO: Refresh Access token
+# TODO: Revoke Access token
 
 
 async def verify_user(email: str):
@@ -89,6 +89,7 @@ async def get_current_user(
     )
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        print(payload)
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
