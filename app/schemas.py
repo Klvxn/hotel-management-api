@@ -1,3 +1,8 @@
+"""
+This module contains the Pydantic models used in the Hotel Management API app. 
+It defines the schema of the data that the API accepts and returns.
+"""
+
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
@@ -37,7 +42,7 @@ Invoice_Pydantic = pydantic_model_creator(Invoice)
 
 class TokenResponse(BaseModel):
     access_token: str
-    token_type: str
+    refresh_token: str
 
 
 class TokenData(BaseModel):

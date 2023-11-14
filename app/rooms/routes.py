@@ -2,15 +2,16 @@ from datetime import timedelta
 from typing import Optional
 from uuid import UUID
 
+import yagmail
 from fastapi import HTTPException, Security
 from fastapi.routing import APIRouter
 from tortoise.transactions import in_transaction
 
 from ..auth.utils import authorize_obj_access, get_current_active_user
+from ..config import settings
 from ..rooms.models import Review, Room, Reservation
 from ..schemas import *
 from ..users.models import Customer, Admin, BaseUser
-
 
 room_router = APIRouter(prefix="/rooms", tags=["Rooms"])
 reservation_router = APIRouter(tags=["Reservations"])
@@ -135,6 +136,29 @@ async def make_reservation(
         )
         room.booked = True
         await room.save()
+        with yagmail.SMTP(settings.email_user, settings.email_password) as yag:
+            yag.send(
+                to=current_user.email,
+                subject="New Reservation",
+                contents=f"""
+                Dear {current_user.first_name},
+
+                Thank you for booking a reservation at our hotel. We are excited to welcome you to our establishment and hope you enjoy your stay.
+
+                Your reservation details are as follows:
+
+                Room Number: {room.room_number}
+                Check-In Date: {new_reservation.check_in_date}
+                Check-Out Date: {new_reservation.check_out_date}
+                Cost Per Night: {room.price}
+                Total Due: {await new_reservation.total_due()}
+
+                If you have any questions or concerns, please don't hesitate to contact us.
+
+                Best regards,
+                Management.
+                """
+            )
         return await Reservation_Pydantic.from_tortoise_orm(new_reservation)
 
 
@@ -243,3 +267,4 @@ async def delete_review(
         await authorize_obj_access(review_obj, current_user)
     await review_obj.delete()
     return {}
+

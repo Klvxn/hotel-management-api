@@ -1,3 +1,9 @@
+"""
+This module contains the API routes for managing customers. It includes endpoints for retrieving a list of customers,
+retrieving a single customer, updating a customer's information, updating a customer's active status, deleting a customer,
+retrieving a customer's reservations, and retrieving a customer's invoices.
+"""
+
 from uuid import UUID
 
 from fastapi import Security
@@ -24,8 +30,10 @@ async def get_a_customer(
     customer_uid: UUID,
     current_user: BaseUser = Security(get_current_active_user)
 ):
+    print("current_user")
     if not current_user.is_admin:
         customer_obj = await Customer.get(uid=customer_uid)
+        print(current_user == customer_obj)
         await authorize_obj_access(customer_obj, current_user)    
     return await Customer_Pydantic.from_queryset_single(Customer.get(uid=customer_uid))
 

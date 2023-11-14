@@ -1,3 +1,9 @@
+"""
+This module contains utility functions for authentication and authorization in the Hotel Management API.
+It includes functions for verifying and hashing passwords, creating access and refresh tokens, and authenticating users.
+It also includes functions for getting the current user and authorizing object and user access.
+"""
+import logging
 from datetime import datetime, timedelta
 
 from fastapi import Depends, status
@@ -13,6 +19,7 @@ from ..config import settings
 from ..users.models import Admin, Customer, BaseUser
 
 
+logger = logging.getLogger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 ADMIN_SCOPES = {
@@ -36,16 +43,23 @@ def hash_password(plain_password):
     return pwd_context.hash(plain_password)
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
+def create_token(data: dict, token_type: str, expires: timedelta):
     to_encode = data.copy()
-    expire = (
-        datetime.utcnow() + expires_delta
-        if expires_delta
-        else datetime.utcnow() + settings.ACCESS_TOKEN_EXPIRES
-    )
-    to_encode.update({"exp": expire})
+    to_encode.update({"token_type": token_type, "exp": datetime.utcnow() + expires })
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
+
+
+def create_access_token(data: dict):
+    return create_token(
+        data, token_type="access", expires=settings.ACCESS_TOKEN_EXPIRES
+    )
+
+
+def create_refresh_token(data: dict):
+    return create_token(
+        data, token_type="refresh", expires=settings.REFRESH_TOKEN_EXPIRES
+    )
 
 
 # TODO: Revoke Access token
@@ -70,7 +84,8 @@ async def authenticate_user(email: str, password: str):
 
 
 async def get_current_user(
-    security_scope: SecurityScopes, token: str = Depends(oauth2_scheme)
+    security_scope: SecurityScopes = SecurityScopes(), 
+    token: str = Depends(oauth2_scheme)
 ):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -89,18 +104,20 @@ async def get_current_user(
     )
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        print(payload)
-        username: str = payload.get("sub")
+        username: str = payload["sub"]
         if username is None:
             raise credentials_exception
         token_scopes = payload.get("scopes", [])
         data = TokenData(email=username, scopes=token_scopes)
     except JWTError as e:
-        credentials_exception.detail = e.args
+        credentials_exception.detail = str(e)
+        logger.error(e)
         raise credentials_exception
     user = await verify_user(data.email)
     if not user:
         raise credentials_exception
+    if not security_scope.scopes:
+        return user
     for scope in security_scope.scopes:
         if scope in data.scopes:
             return user
