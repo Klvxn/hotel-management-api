@@ -8,15 +8,14 @@ from pydantic_settings import BaseSettings
 
 
 parent_dir = Path().resolve().parent
-load_dotenv(parent_dir)
-
+load_dotenv()
 
 class Settings(BaseSettings):
     api_key: str = "my_key"
     superuser_email: EmailStr = "johndoe@example.com"
     stripe_secret_key: str = os.getenv("STRIPE_API_KEY", "my_stripe_key")
     host_url: str = "http://localhost:8081"
-    email_user: str = os.getenv("EMAIL_USERNAME", "my_email")
+    email_user: str = os.getenv("EMAIL_USER", "my_email")
     email_password: str = os.getenv("EMAIL_PASSWORD", "my_password")
     SECRET_KEY: str = "secret_key"
     ALGORITHM: str = "HS256"

@@ -54,12 +54,10 @@ class Reservation(models.Model):
     class PydanticMeta:
         computed = ("total_due",)
 
-    async def total_due(self) -> Decimal:
-        room = await self.room
-        duration_of_stay = self.check_out_date - self.check_in_date
-        return (
-            room.price * duration_of_stay.days if duration_of_stay.days else room.price
-        )
+    def total_due(self) -> Decimal:
+        room = self.room
+        duration_of_stay = (self.check_out_date - self.check_in_date).total_seconds()
+        return room.price * Decimal(duration_of_stay / (3600 * 24))
 
 
 class Review(models.Model):

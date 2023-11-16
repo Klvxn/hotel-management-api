@@ -5,6 +5,7 @@ It also includes functions for getting the current user and authorizing object a
 """
 import logging
 from datetime import datetime, timedelta
+from typing import Optional
 
 from fastapi import Depends, status
 from fastapi.exceptions import HTTPException
@@ -17,6 +18,7 @@ from app.rooms.models import Reservation, Review
 from ..schemas import TokenData
 from ..config import settings
 from ..users.models import Admin, Customer, BaseUser
+from uuid import UUID
 
 
 logger = logging.getLogger(__name__)
@@ -45,7 +47,7 @@ def hash_password(plain_password):
 
 def create_token(data: dict, token_type: str, expires: timedelta):
     to_encode = data.copy()
-    to_encode.update({"token_type": token_type, "exp": datetime.utcnow() + expires })
+    to_encode.update({"token_type": token_type, "exp": datetime.utcnow() + expires})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
@@ -65,19 +67,19 @@ def create_refresh_token(data: dict):
 # TODO: Revoke Access token
 
 
-async def verify_user(email: str):
-    admin = await Admin.get_or_none(email=email)
-    customer = await Customer.get_or_none(email=email)
-    if admin and not customer:
-        return admin
-    elif customer and not admin:
-        return customer
-    else:
-        return
+async def verify_user(user_uid: Optional[UUID] = None, email: Optional[str] = None):
+    if user_uid:
+        admin = await Admin.get_or_none(uid=user_uid)
+        customer = await Customer.get_or_none(uid=user_uid)
+        return admin or customer
+    if email:
+        admin = await Admin.get_by_email(email)
+        customer = await Customer.get_by_email(email)
+        return admin or customer
 
 
 async def authenticate_user(email: str, password: str):
-    user = await verify_user(email)
+    user = await verify_user(email=email)
     if user and verify_password(password, user.password_hash):
         return user
     return False
@@ -104,18 +106,19 @@ async def get_current_user(
     )
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        username: str = payload["sub"]
-        if username is None:
+        user_id: UUID = payload["sub"]
+        if user_id is None:
             raise credentials_exception
         token_scopes = payload.get("scopes", [])
-        data = TokenData(email=username, scopes=token_scopes)
+        data = TokenData(user_id=user_id, scopes=token_scopes)
     except JWTError as e:
         credentials_exception.detail = str(e)
         logger.error(e)
         raise credentials_exception
-    user = await verify_user(data.email)
+    user = await verify_user(user_uid=data.user_id)
     if not user:
         raise credentials_exception
+    logger.info(f"User {user} authenticated successfully, payload: {payload}")
     if not security_scope.scopes:
         return user
     for scope in security_scope.scopes:

@@ -20,7 +20,7 @@ review_router = APIRouter(tags=["Reviews"])
 
 # --- Room end points ---
 
-@room_router.get("/", response_model=list[Room_Pydantic])
+@room_router.get("/", response_model=list[Room_Without_Reservation])
 async def get_rooms(
     booked: Optional[bool] = None, room_type: Optional[Room.RoomType] = None
 ):
@@ -31,20 +31,42 @@ async def get_rooms(
     if room_type:
         filters["room_type"] = room_type
     query = query.filter(**filters) if filters else query
+    return await Room_Without_Reservation.from_queryset(query)
+
+
+@room_router.get("/as-admin", response_model=Room_Pydantic)
+async def admin_get_rooms(
+    booked: Optional[bool] = None,
+    room_type: Optional[Room.RoomType] = None,
+    current_user: Admin = Security(get_current_active_user)
+):
+    query = Room.all()
+    filters = {}
+    if booked is not None:
+        filters["booked"] = booked
+    if room_type:
+        filters["room_type"] = room_type
+    query = query.filter(**filters) if filters else query
+    extra = {"count": query.count}
     return await Room_Pydantic.from_queryset(query)
 
 
 @room_router.post("/", response_model=Room_Pydantic, status_code=201)
 async def create_room(
     room: RoomIn_Pydantic,
-    current_user: Admin = Security(get_current_active_user, scopes=["admin-write"])
+    # current_user: Admin = Security(get_current_active_user, scopes=["admin-write"])
 ):
     new_room_obj = await Room.create(**room.dict())
     return await Room_Pydantic.from_tortoise_orm(new_room_obj)
 
 
-@room_router.get("/{room_id}", response_model=Room_Pydantic)
+@room_router.get("/{room_id}", response_model=Room_Without_Reservation)
 async def get_single_room(room_id: UUID):
+    return await Room_Without_Reservation.from_queryset_single(Room.get(id=room_id))
+
+
+@room_router.get("/{room_id}/as-admin", response_model=Room_Pydantic)
+async def admin_get_single_room(room_id: UUID):
     return await Room_Pydantic.from_queryset_single(Room.get(id=room_id))
 
 
@@ -130,7 +152,7 @@ async def make_reservation(
     if not check_in < check_out or datetime.now() > check_in:
         raise HTTPException(400, "Invalid check in and check out dates")
     reservation = reservation.model_dump(exclude={"room_number"})
-    async with in_transaction():
+    async with in_transaction("postgres"):
         new_reservation = await Reservation.create(
             **reservation, room_id=room.id, customer_id=current_user.uid
         )
@@ -139,19 +161,20 @@ async def make_reservation(
         with yagmail.SMTP(settings.email_user, settings.email_password) as yag:
             yag.send(
                 to=current_user.email,
-                subject="New Reservation",
+                subject="New Reservation, Welcome!",
                 contents=f"""
-                Dear {current_user.first_name},
+                Hi {current_user.first_name},
 
                 Thank you for booking a reservation at our hotel. We are excited to welcome you to our establishment and hope you enjoy your stay.
 
                 Your reservation details are as follows:
 
-                Room Number: {room.room_number}
-                Check-In Date: {new_reservation.check_in_date}
-                Check-Out Date: {new_reservation.check_out_date}
-                Cost Per Night: {room.price}
-                Total Due: {await new_reservation.total_due()}
+                Room Number: #{room.room_number}
+                Room Type: {room.room_type}
+                Cost Per Night: ${room.price:.2f}
+                Check-In Date: {new_reservation.check_in_date.date()}
+                Check-Out Date: {new_reservation.check_out_date.date()}
+                Total Due: ${new_reservation.total_due:.2f}
 
                 If you have any questions or concerns, please don't hesitate to contact us.
 
@@ -267,4 +290,3 @@ async def delete_review(
         await authorize_obj_access(review_obj, current_user)
     await review_obj.delete()
     return {}
-

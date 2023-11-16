@@ -30,8 +30,9 @@ Tortoise.init_models([
 ], "models")
 
 Room_Pydantic = pydantic_model_creator(Room)
+Room_Without_Reservation = pydantic_model_creator(Room, exclude=("reservations",))
 RoomIn_Pydantic = pydantic_model_creator(
-    Room, name="RoomIn", exclude=("id", "reservations", "reviews")
+    Room, name="RoomIn", exclude=("id", "reservations", "reviews", "available_from")
 )
 Reservation_Pydantic = pydantic_model_creator(Reservation)
 Review_Pydantic = pydantic_model_creator(Review, name="Review")
@@ -46,7 +47,7 @@ class TokenResponse(BaseModel):
 
 
 class TokenData(BaseModel):
-    email: EmailStr
+    user_id: UUID
     scopes: list[str]
 
 

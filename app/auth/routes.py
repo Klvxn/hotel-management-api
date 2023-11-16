@@ -35,9 +35,9 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         else:
             scopes = list(SUPERUSER_SCOPES.keys())
     access_token = create_access_token(
-        data={"sub": user.email, "scopes": scopes},
+        data={"sub": str(user.uid), "scopes": scopes},
     )
-    refresh_token = create_refresh_token(data={"sub": user.email, "scopes": scopes})
+    refresh_token = create_refresh_token(data={"sub": str(user.uid), "scopes": scopes})
     return {"access_token": access_token, "refresh_token": refresh_token}
 
 

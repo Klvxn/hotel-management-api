@@ -21,9 +21,6 @@ class BaseUser(models.Model):
         abstract = True
         ordering = ("-joined_at",)
 
-    class PydanticMeta:
-        computed = ("full_name",)
-
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}"
 
@@ -50,5 +47,3 @@ class Customer(BaseUser):
     class PydanticMeta:
         exclude = ("is_admin", "password_hash")
         computed = ("full_name",)
-
-    
