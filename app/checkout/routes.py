@@ -54,8 +54,8 @@ async def create_invoice(
 ):
     reservation = await Reservation.get(id=reservation_id).prefetch_related("customer")
     invoice = await Invoice.create(
-        reservations_id=reservation.id,
-        amount=await reservation.total_due(),
+        reservation_id=reservation.id,
+        amount=await reservation.reservation_due(),
         customer_email=reservation.customer.email
     )
     return await Invoice_Pydantic.from_tortoise_orm(invoice)
@@ -91,7 +91,7 @@ async def create_checkout_session(
     current_user: Customer = Depends(get_current_active_user)
 ):
     invoice = await Invoice.get(id=invoice_id)
-    reservation = await Reservation.get(id=invoice.reservations_id).prefetch_related("room", "customer")
+    reservation = await Reservation.get(id=invoice.reservation_id).prefetch_related("room", "customer")
     try:
         desc = f"Reservation for {reservation.room.room_type} Room (Room #{reservation.room.room_number})"
         checkout_session = stripe.checkout.Session.create(
