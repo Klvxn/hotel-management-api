@@ -6,7 +6,8 @@ It also includes functions for getting the current user and authorizing object a
 
 import logging
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Union
+from uuid import UUID
 
 from fastapi import Depends, status
 from fastapi.exceptions import HTTPException
@@ -14,12 +15,10 @@ from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 
-from app.rooms.models import Reservation, Review
-
-from ..schemas import TokenData
 from ..config import settings
+from ..rooms.models import Reservation, Review
+from ..schemas import TokenData
 from ..users.models import Admin, Customer, BaseUser
-from uuid import UUID
 
 
 logger = logging.getLogger(__name__)
@@ -119,7 +118,7 @@ async def get_current_user(
     user = await verify_user(user_uid=data.user_id)
     if not user:
         raise credentials_exception
-    logger.info(f"User {user} authenticated successfully, payload: {payload}")
+    logger.info(f"User {user} authenticated successfully.")
     if not security_scope.scopes:
         return user
     for scope in security_scope.scopes:
@@ -135,7 +134,7 @@ async def get_current_active_user(current_user: Customer = Depends(get_current_u
 
 
 async def authorize_obj_access(
-    obj: BaseUser | Reservation | Review,
+    obj: Union[BaseUser, Reservation, Review],
     current_user: BaseUser,
     allow_superuser: bool = True,
 ):

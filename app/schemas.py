@@ -30,7 +30,9 @@ Tortoise.init_models([
 ], "models")
 
 Room_Pydantic = pydantic_model_creator(Room)
-Room_Without_Reservation = pydantic_model_creator(Room, name="room_without_reservation", exclude=("reservations",))
+Room_Without_Reservation = pydantic_model_creator(
+    Room, name="room_without_reservation", exclude=("reservations",)
+)
 RoomIn_Pydantic = pydantic_model_creator(
     Room, name="roomIn", exclude=("id", "reservations", "reviews")
 )

@@ -6,7 +6,7 @@ retrieving a customer's reservations, and retrieving a customer's invoices.
 
 from uuid import UUID
 
-from fastapi import Security
+from fastapi import Depends, Security
 from fastapi.routing import APIRouter
 
 from ...auth.utils import authorize_obj_access, get_current_active_user
@@ -28,7 +28,7 @@ async def get_customers(
 @customer_router.get("/{customer_uid}", response_model=Customer_Pydantic)
 async def get_a_customer(
     customer_uid: UUID,
-    current_user: BaseUser = Security(get_current_active_user)
+    current_user: BaseUser = Depends(get_current_active_user)
 ):
     print("current_user")
     if not current_user.is_admin:
@@ -42,7 +42,7 @@ async def get_a_customer(
 async def update_customer(
     customer_uid: UUID,
     customer: UserUpdate,
-    current_user: Customer = Security(get_current_active_user)
+    current_user: Customer = Depends(get_current_active_user)
 ):
     customer_obj = await Customer.get(uid=customer_uid)
     await authorize_obj_access(customer_obj, current_user)
@@ -64,7 +64,7 @@ async def update_customer_active_status(
 
 @customer_router.delete("/{customer_uid}", status_code=204)
 async def delete_customer(
-    customer_uid: UUID, current_user: BaseUser = Security(get_current_active_user)
+    customer_uid: UUID, current_user: BaseUser = Depends(get_current_active_user)
 ):
     customer_obj = await Customer.get(uid=customer_uid)
     if not customer_obj.is_admin:
@@ -76,7 +76,7 @@ async def delete_customer(
 @customer_router.get("/{customer_uid}/reservations", response_model=list[ReservationHistory])
 async def get_customer_reservations(
     customer_uid: UUID,
-    current_user: Customer = Security(get_current_active_user)
+    current_user: Customer = Depends(get_current_active_user)
 ):
     customer_obj = await Customer.get(uid=customer_uid)
     if not current_user.is_admin:
@@ -87,7 +87,7 @@ async def get_customer_reservations(
 
 @customer_router.get("/{customer_uid}/invoices", response_model=list[Invoice_Pydantic])
 async def get_customer_invoices(
-    customer_uid: UUID, current_user: Customer = Security(get_current_active_user)
+    customer_uid: UUID, current_user: Customer = Depends(get_current_active_user)
 ):
     customer_obj = await Customer.get(uid=customer_uid)
     if not current_user.is_admin:

@@ -49,7 +49,7 @@ async def update_admin(
     return await Admin_Pydantic.from_queryset_single(Admin.get(uid=admin_uid))
 
 
-@admin_router.patch("/{customer_uid}", response_model=Admin_Pydantic)
+@admin_router.patch("/{admin_uid}", response_model=Admin_Pydantic)
 async def update_admin_active_status(
     admin_uid: UUID,
     admin: dict[str, bool],

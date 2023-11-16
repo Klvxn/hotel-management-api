@@ -52,6 +52,7 @@ async def sign_up_new_customers(customer: UserIn):
 
 @auth_router.post("/refresh", response_model=dict)
 async def refresh_expired_token(current_user: BaseUser = Depends(get_current_active_user)):
+    
     pass
 
 
