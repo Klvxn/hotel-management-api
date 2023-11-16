@@ -51,10 +51,7 @@ class Reservation(models.Model):
     class Meta:
         ordering = ("-created_at",)
 
-    class PydanticMeta:
-        computed = ("total_due",)
-
-    def total_due(self) -> Decimal:
+    def reservation_due(self) -> Decimal:
         room = self.room
         duration_of_stay = (self.check_out_date - self.check_in_date).total_seconds()
         return room.price * Decimal(duration_of_stay / (3600 * 24))

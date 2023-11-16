@@ -3,6 +3,7 @@ This module contains utility functions for authentication and authorization in t
 It includes functions for verifying and hashing passwords, creating access and refresh tokens, and authenticating users.
 It also includes functions for getting the current user and authorizing object and user access.
 """
+
 import logging
 from datetime import datetime, timedelta
 from typing import Optional

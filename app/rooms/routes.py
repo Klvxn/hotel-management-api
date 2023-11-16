@@ -34,11 +34,11 @@ async def get_rooms(
     return await Room_Without_Reservation.from_queryset(query)
 
 
-@room_router.get("/as-admin", response_model=Room_Pydantic)
+@room_router.get("/as-admin", response_model=list[Room_Pydantic])
 async def admin_get_rooms(
     booked: Optional[bool] = None,
     room_type: Optional[Room.RoomType] = None,
-    current_user: Admin = Security(get_current_active_user)
+    # current_user: Admin = Security(get_current_active_user)
 ):
     query = Room.all()
     filters = {}
@@ -147,7 +147,8 @@ async def make_reservation(
         if room.booked or check_in <= last_reservation_check_out + timedelta(hours=2):
             raise HTTPException(
                 400,
-                f"Room is currently unavailable between {check_in} and {check_out}. Adjust your check in and check out dates",
+                f"Room is currently unavailable between {check_in} and {check_out}. \
+                Adjust your check in and check out dates",
             )
     if not check_in < check_out or datetime.now() > check_in:
         raise HTTPException(400, "Invalid check in and check out dates")
@@ -174,7 +175,7 @@ async def make_reservation(
                 Cost Per Night: ${room.price:.2f}
                 Check-In Date: {new_reservation.check_in_date.date()}
                 Check-Out Date: {new_reservation.check_out_date.date()}
-                Total Due: ${new_reservation.total_due:.2f}
+                Total Due: ${new_reservation.reservation_due:.2f}
 
                 If you have any questions or concerns, please don't hesitate to contact us.
 
