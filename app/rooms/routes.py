@@ -234,7 +234,7 @@ async def delete_reservation(
     reservation_obj = await Reservation.get(id=reservation_id).prefetch_related("room", "customer")
     if not current_user.is_admin:
         await authorize_obj_access(reservation_obj, current_user)
-    async with in_transaction():
+    async with in_transaction("postgres"):
         room = reservation_obj.room
         await room.update_from_dict({"booked": False}).save()
         await reservation_obj.delete()
