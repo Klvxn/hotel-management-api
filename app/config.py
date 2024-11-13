@@ -10,6 +10,7 @@ from pydantic_settings import BaseSettings
 parent_dir = Path().resolve().parent
 load_dotenv()
 
+
 class Settings(BaseSettings):
     api_key: str = "my_key"
     superuser_email: EmailStr = "johndoe@example.com"
@@ -21,23 +22,26 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRES: timedelta = timedelta(hours=1)
     REFRESH_TOKEN_EXPIRES: timedelta = timedelta(days=14)
-    tortoise_config: dict = {
+    MODEL_PATHS: list[str] = [
+        "app.rooms.models",
+        "app.reservations.models",
+        "app.users.models",
+        "app.guest_requests.models",
+        "app.checkout.models",
+        "aerich.models",
+    ]
+    tortoise_config: dict[str, dict] = {
         "connections": {
             "default": {
                 "engine": "tortoise.backends.sqlite",
-                "credentials": {"file_path": "db.sqlite3"},
+                "credentials": {"file_path": "dab.sqlite3"},
             },
             "postgres": "postgres://postgres:postgres@127.0.0.1:5432/hotel_database",
         },
         "apps": {
             "models": {
-                "models": [
-                    "app.rooms.models",
-                    "app.users.models",
-                    "app.checkout.models",
-                    "aerich.models",
-                ],
-                "default_connection": "postgres",
+                "models": MODEL_PATHS,
+                "default_connection": "default",
             },
         },
     }

@@ -1,6 +1,6 @@
 ## Hotel Management API
 
-The Hotel Management API is a RESTful web service that allows you to manage hotel reservations, rooms, customers, and reviews. This README provides an overview of the API's functionality and how to use it.
+The Hotel Management API is a RESTful web service that allows you to manage hotel reservations, rooms, guests, and reviews. This README provides an overview of the API's functionality and how to use it.
 
 ### Table of Contents
 
@@ -65,7 +65,7 @@ Once the API is up and running, you can interact with it using HTTP requests. Yo
 The API provides the following endpoints:
 
 - **Rooms**: CRUD operations for managing hotel rooms.
-- **Customers**: CRUD operations for managing customer information.
+- **guests**: CRUD operations for managing guest information.
 - **Reservations**: Create and manage reservations for hotel rooms.
 - **Reviews**: Create and view reviews for hotel rooms.
 
@@ -110,8 +110,8 @@ The API uses token-based authentication. To access protected endpoints, you need
 The API uses the following data models:
 
 - `Room`: Represents hotel rooms.
-- `Customer`: Represents customer information.
-- `Reservation`: Represents reservations made by customers.
+- `guest`: Represents guest information.
+- `Reservation`: Represents reservations made by guests.
 - `Review`: Represents reviews for hotel rooms.
 - `Invoice`: Represents invoice for payments.
 

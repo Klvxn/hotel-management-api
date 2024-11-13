@@ -16,9 +16,10 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 
 from ..config import settings
-from ..rooms.models import Reservation, Review
-from ..schemas import TokenData
-from ..users.models import Admin, Customer, BaseUser
+from ..rooms.models import Review
+from ..reservations.models import Reservation
+from ..users.schema import TokenData
+from ..users.models import Admin, Guest, BaseUser
 
 
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ SUPERUSER_SCOPES = {
 }
 
 scopes = {**ADMIN_SCOPES, **SUPERUSER_SCOPES}
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login/t", scopes=scopes)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login", scopes=scopes)
 
 
 def verify_password(plain_password: str, hashed_password):
@@ -70,12 +71,12 @@ def create_refresh_token(data: dict):
 async def verify_user(user_uid: Optional[UUID] = None, email: Optional[str] = None):
     if user_uid:
         admin = await Admin.get_or_none(uid=user_uid)
-        customer = await Customer.get_or_none(uid=user_uid)
-        return admin or customer
+        guest = await Guest.get_or_none(uid=user_uid)
+        return admin or guest
     if email:
         admin = await Admin.get_by_email(email)
-        customer = await Customer.get_by_email(email)
-        return admin or customer
+        guest = await Guest.get_by_email(email)
+        return admin or guest
 
 
 async def authenticate_user(email: str, password: str):
@@ -127,7 +128,7 @@ async def get_current_user(
     raise scope_exception
 
 
-async def get_current_active_user(current_user: Customer = Depends(get_current_user)):
+async def get_current_active_user(current_user: Guest = Depends(get_current_user)):
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
@@ -143,7 +144,7 @@ async def authorize_obj_access(
     if isinstance(obj, BaseUser):
         return await authorize_user_access(obj, current_user)
     try:
-        assert obj.customer == current_user
+        assert obj.guest == current_user
         return True
     except AssertionError:
         raise HTTPException(403, "Unauthorized access")

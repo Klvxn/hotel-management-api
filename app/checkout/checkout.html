@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Buy cool new product</title>
+    <script src="https://js.stripe.com/v3/"></script>
+  </head>
+  <body>
+    <section>
+      <div class="product">
+        <!-- <img src="https://i.imgur.com/EHyR2nP.png" alt="The cover of Stubborn Attachments"/> -->
+        <div class="description">
+          <h3>Stubborn Attachments</h3>
+          <h5>$20.00</h5>
+        </div>
+      </div>
+      <form action="http://localhost:7000/checkout/session/59ab25c5-b5cf-43be-8eed-b15d2d88cdd0" method="POST">
+        <button type="submit" id="checkout-button" style="border: 1rem; padding: 3rem;">Checkout</button>
+      </form>
+    </section>
+  </body>
+</html>

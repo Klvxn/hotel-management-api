@@ -1,0 +1,215 @@
+{'$defs': {
+    '3v3xcy': {
+        'additionalProperties': False, 
+        'properties': {
+            'uid': {
+                'anyOf': [
+                    {'format': 'uuid', 'type': 'string'},
+                    {'type': 'null'}
+                ], 
+                'title': 'Uid'
+            }, 
+            'first_name': {'maxLength': 50, 'title': 'First Name', 'type': 'string'}, 
+            'last_name': {'maxLength': 50, 'title': 'Last Name', 'type': 'string'},
+            'email': {'maxLength': 100, 'title': 'Email', 'type': 'string'}, 
+            'joined_at': {
+                'anyOf': [
+                    {'format': 'date', 'type': 'string'},
+                    {'type': 'null'}
+                ], 
+                'title': 'Joined At'
+            }, 
+            'is_active': {
+                'anyOf': [
+                    {'type': 'boolean'},
+                    {'type': 'null'}
+                ], 
+                'default': True, 
+                'title': 'Is Active'
+            }, 
+            'reviews': {
+                'items': {'$ref': '#/$defs/i74vgk'}, 
+                'title': 'Reviews', 
+                'type': 'array'
+            }
+        }, 
+        'required': ['uid', 'first_name', 'last_name', 'email', 'joined_at', 'reviews'], 
+        'title': 'Customer', 
+        'type': 'object'
+    }, 
+        '5gbxzj': {'additionalProperties': False, 'properties': {'id': {'maximum': 2147483647, 'minimum': 1, 'title': 'Id', 'type': 'integer'
+                }, 'customer': {'$ref': '#/$defs/pydantic__main__app__users__models__Customer__leaf'
+                }, 'created_at': {'format': 'date-time', 'readOnly': True, 'title': 'Created At', 'type': 'string'
+                }, 'rating': {'anyOf': [
+                        {'maximum': 2147483647, 'minimum': -2147483648, 'type': 'integer'
+                        },
+                        {'type': 'null'
+                        }
+                    ], 'default': 0, 'title': 'Rating'
+                }, 'comment': {'anyOf': [
+                        {'type': 'string'
+                        },
+                        {'type': 'null'
+                        }
+                    ], 'nullable': True, 'title': 'Comment'
+                }
+            }, 'required': ['id', 'customer', 'created_at', 'comment'
+            ], 'title': 'Review', 'type': 'object'
+        }, 'i74vgk': {'additionalProperties': False, 'properties': {'id': {'maximum': 2147483647, 'minimum': 1, 'title': 'Id', 'type': 'integer'
+                }, 'room': {'$ref': '#/$defs/pydantic__main__app__rooms__models__Room__leaf'
+                }, 'created_at': {'format': 'date-time', 'readOnly': True, 'title': 'Created At', 'type': 'string'
+                }, 'rating': {'anyOf': [
+                        {'maximum': 2147483647, 'minimum': -2147483648, 'type': 'integer'
+                        },
+                        {'type': 'null'
+                        }
+                    ], 'default': 0, 'title': 'Rating'
+                }, 'comment': {'anyOf': [
+                        {'type': 'string'
+                        },
+                        {'type': 'null'
+                        }
+                    ], 'nullable': True, 'title': 'Comment'
+                }
+            }, 'required': ['id', 'room', 'created_at', 'comment'
+            ], 'title': 'Review', 'type': 'object'
+        }, 'pydantic__main__app__checkout__models__Invoice__leaf': {'additionalProperties': False, 'properties': {'id': {'anyOf': [
+                        {'format': 'uuid', 'type': 'string'
+                        },
+                        {'type': 'null'
+                        }
+                    ], 'title': 'Id'
+                }, 'created_at': {'format': 'date-time', 'readOnly': True, 'title': 'Created At', 'type': 'string'
+                }, 'status': {'anyOf': [
+                        {'maxLength': 6, 'type': 'string'
+                        },
+                        {'type': 'null'
+                        }
+                    ], 'default': 'unpaid', 'description': 'paid: paid<br/>unpaid: unpaid', 'title': 'Status'
+                }, 'transaction_id': {'anyOf': [
+                        {'maxLength': 100, 'type': 'string'
+                        },
+                        {'type': 'null'
+                        }
+                    ], 'nullable': True, 'title': 'Transaction Id'
+                }, 'customer_email': {'maxLength': 100, 'title': 'Customer Email', 'type': 'string'
+                }, 'amount': {'anyOf': [
+                        {'type': 'number'
+                        },
+                        {'type': 'string'
+                        },
+                        {'type': 'null'
+                        }
+                    ], 'nullable': True, 'title': 'Amount'
+                }
+            }, 'required': ['id', 'created_at', 'transaction_id', 'customer_email', 'amount'
+            ], 'title': 'Invoice', 'type': 'object'
+        }, 'pydantic__main__app__rooms__models__Room__leaf': {'additionalProperties': False, 'properties': {'id': {'anyOf': [
+                        {'format': 'uuid', 'type': 'string'
+                        },
+                        {'type': 'null'
+                        }
+                    ], 'title': 'Id'
+                }, 'room_type': {'anyOf': [
+                        {'maxLength': 10, 'type': 'string'
+                        },
+                        {'type': 'null'
+                        }
+                    ], 'description': 'STANDARD: Standard<br/>DELUXE: Deluxe<br/>SUITE: Suite', 'nullable': True, 'title': 'Room Type'
+                }, 'room_number': {'maximum': 2147483647, 'minimum': -2147483648, 'title': 'Room Number', 'type': 'integer'
+                }, 'booked': {'anyOf': [
+                        {'type': 'boolean'
+                        },
+                        {'type': 'null'
+                        }
+                    ], 'default': False, 'title': 'Booked'
+                }, 'capacity': {'maxLength': 500, 'title': 'Capacity', 'type': 'string'
+                }, 'price': {'anyOf': [
+                        {'type': 'number'
+                        },
+                        {'type': 'string'
+                        }
+                    ], 'description': 'price of room per night', 'title': 'Price'
+                }
+            }, 'required': ['id', 'room_type', 'room_number', 'capacity', 'price'
+            ], 'title': 'Room', 'type': 'object'
+        }, 'pydantic__main__app__users__models__Customer__leaf': {'additionalProperties': False, 'properties': {'uid': {'anyOf': [
+                        {'format': 'uuid', 'type': 'string'
+                        },
+                        {'type': 'null'
+                        }
+                    ], 'title': 'Uid'
+                }, 'first_name': {'maxLength': 50, 'title': 'First Name', 'type': 'string'
+                }, 'last_name': {'maxLength': 50, 'title': 'Last Name', 'type': 'string'
+                }, 'email': {'maxLength': 100, 'title': 'Email', 'type': 'string'
+                }, 'joined_at': {'anyOf': [
+                        {'format': 'date', 'type': 'string'
+                        },
+                        {'type': 'null'
+                        }
+                    ], 'title': 'Joined At'
+                }, 'is_active': {'anyOf': [
+                        {'type': 'boolean'
+                        },
+                        {'type': 'null'
+                        }
+                    ], 'default': True, 'title': 'Is Active'
+                }
+            }, 'required': ['uid', 'first_name', 'last_name', 'email', 'joined_at'
+            ], 'title': 'Customer', 'type': 'object'
+        }, 'x5xige': {'additionalProperties': False, 'properties': {'id': {'anyOf': [
+                        {'format': 'uuid', 'type': 'string'
+                        },
+                        {'type': 'null'
+                        }
+                    ], 'title': 'Id'
+                }, 'room_type': {'anyOf': [
+                        {'maxLength': 10, 'type': 'string'
+                        },
+                        {'type': 'null'
+                        }
+                    ], 'description': 'STANDARD: Standard<br/>DELUXE: Deluxe<br/>SUITE: Suite', 'nullable': True, 'title': 'Room Type'
+                }, 'room_number': {'maximum': 2147483647, 'minimum': -2147483648, 'title': 'Room Number', 'type': 'integer'
+                }, 'booked': {'anyOf': [
+                        {'type': 'boolean'
+                        },
+                        {'type': 'null'
+                        }
+                    ], 'default': False, 'title': 'Booked'
+                }, 'capacity': {'maxLength': 500, 'title': 'Capacity', 'type': 'string'
+                }, 'price': {'anyOf': [
+                        {'type': 'number'
+                        },
+                        {'type': 'string'
+                        }
+                    ], 'description': 'price of room per night', 'title': 'Price'
+                }, 'reviews': {'items': {'$ref': '#/$defs/5gbxzj'
+                    }, 'title': 'Reviews', 'type': 'array'
+                }
+            }, 'required': ['id', 'room_type', 'room_number', 'capacity', 'price', 'reviews'
+            ], 'title': 'Room', 'type': 'object'
+        }
+    }, 'additionalProperties': False, 'properties': {'id': {'anyOf': [
+                {'format': 'uuid', 'type': 'string'
+                },
+                {'type': 'null'
+                }
+            ], 'title': 'Id'
+        }, 'room': {'$ref': '#/$defs/x5xige'
+        }, 'occupants': {'maximum': 2147483647, 'minimum': -2147483648, 'title': 'Occupants', 'type': 'integer'
+        }, 'customer': {'$ref': '#/$defs/3v3xcy'
+        }, 'created_at': {'format': 'date-time', 'readOnly': True, 'title': 'Created At', 'type': 'string'
+        }, 'check_in_date': {'format': 'date-time', 'title': 'Check In Date', 'type': 'string'
+        }, 'check_out_date': {'format': 'date-time', 'title': 'Check Out Date', 'type': 'string'
+        }, 'customer_checked_out': {'anyOf': [
+                {'type': 'boolean'
+                },
+                {'type': 'null'
+                }
+            ], 'default': False, 'title': 'Customer Checked Out'
+        }, 'invoice': {'items': {'$ref': '#/$defs/pydantic__main__app__checkout__models__Invoice__leaf'
+            }, 'title': 'Invoice', 'type': 'array'
+        }
+    }, 'required': ['id', 'room', 'occupants', 'customer', 'created_at', 'check_in_date', 'check_out_date', 'invoice'
+    ], 'title': 'Reservation', 'type': 'object'
+}

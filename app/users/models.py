@@ -3,7 +3,7 @@ from datetime import date
 
 from tortoise import fields, models
 
-from ..rooms.models import Reservation
+from ..reservations.models import Reservation
 
 
 class BaseUser(models.Model):
@@ -14,36 +14,35 @@ class BaseUser(models.Model):
     password_hash = fields.CharField(max_length=200, unique=True)
     joined_at = fields.DateField(default=date.today)
     is_active = fields.BooleanField(default=True)
-    is_admin = fields.BooleanField(default=False)
-    is_superuser = fields.BooleanField(default=False)
+    is_admin = fields.BooleanField(default=False, editable=False)
 
     class Meta:
         abstract = True
         ordering = ("-joined_at",)
-
-    def full_name(self) -> str:
+        
+    def full_name(self):
         return f"{self.first_name} {self.last_name}"
 
     def __str__(self):
         return f"<{self.__class__.__name__}: {self.full_name()}>"
 
     @classmethod
-    async def get_by_email(cls, email: str):
-        return await cls.get_or_none(email=email)
+    def get_by_email(cls, email: str):
+        return cls.get_or_none(email=email)
 
 
 class Admin(BaseUser):
-    is_admin = fields.BooleanField(default=True)
+    is_superuser = fields.BooleanField(default=False)
 
     class PydanticMeta:
-        computed = ("full_name",)
         exclude = ("password_hash",)
+        computed = ("full_name",)
 
 
-class Customer(BaseUser):
+class Guest(BaseUser):
     reservations: fields.ReverseRelation[Reservation]
-    is_superuser = None
 
     class PydanticMeta:
-        exclude = ("is_admin", "password_hash")
+        exclude = ("password_hash", "reviews")
         computed = ("full_name",)
+
