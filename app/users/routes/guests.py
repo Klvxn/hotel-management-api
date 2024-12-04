@@ -8,13 +8,8 @@ from fastapi import Depends
 from fastapi.routing import APIRouter
 
 from ..models import Guest
-from ..schema import (
-    Guest_Pydantic,
-    UserIn,
-    UserUpdate,
-)
+from ..schema import Guest_Pydantic, UserIn, UserUpdate
 from ...auth.utils import get_current_active_user, hash_password
-from ...checkout.models import Invoice
 
 
 guest_router = APIRouter(tags=["guests"])
@@ -35,12 +30,8 @@ async def guest_sign_up(guest: UserIn):
 
 
 @guest_router.put("/", response_model=Guest_Pydantic)
-async def update_guest(
-    guest: UserUpdate, current_user: Guest = Depends(get_current_active_user)
-):
-    await Guest.filter(uid=current_user.uid).update(
-        **guest.model_dump(exclude={"full_name"})
-    )
+async def update_guest(guest: UserUpdate, current_user: Guest = Depends(get_current_active_user)):
+    await Guest.filter(uid=current_user.uid).update(**guest.model_dump(exclude={"full_name"}))
     return await Guest_Pydantic.from_queryset_single(Guest.get(uid=current_user.uid))
 
 

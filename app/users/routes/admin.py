@@ -1,10 +1,13 @@
 from uuid import UUID
 
-from fastapi import Security
+from fastapi import Depends, Security
 from fastapi.routing import APIRouter
 
-from ...auth.utils import authorize_obj_access, get_current_active_user, hash_password
-from ...checkout.models import Invoice
+from ...auth.utils import (
+    authorize_obj_access,
+    get_current_active_admin,
+    hash_password,
+)
 from ...users.models import Admin, Guest
 from ..schema import (
     Admin_Pydantic,
@@ -18,7 +21,7 @@ admin_router = APIRouter(tags=["Admin"])
 
 @admin_router.get("/", response_model=list[Admin_Pydantic])
 async def get_all_admins(
-    current_user: Admin = Security(get_current_active_user, scopes=["superuser-read"])
+    current_user: Admin = Security(get_current_active_admin, scopes=["superuser-rw"])
 ):
     return await Admin_Pydantic.from_queryset(Admin.all())
 
@@ -35,7 +38,7 @@ async def admin_sign_up(admin: UserIn):
 @admin_router.get("/{admin_uid}", response_model=Admin_Pydantic)
 async def get_an_admin(
     admin_uid: UUID,
-    current_user: Admin = Security(get_current_active_user, scopes=["admin-read"]),
+    current_user: Admin = Security(get_current_active_admin, scopes=["admin-read"]),
 ):
     admin_obj = await Admin.get(uid=admin_uid)
     await authorize_obj_access(admin_obj, current_user)
@@ -46,7 +49,7 @@ async def get_an_admin(
 async def update_admin(
     admin_uid: UUID,
     admin: UserUpdate,
-    current_user: Admin = Security(get_current_active_user, scopes=["admin-write"]),
+    current_user: Admin = Security(get_current_active_admin, scopes=["admin-write"]),
 ):
     admin_obj = await Admin.get(uid=admin_uid)
     await authorize_obj_access(admin_obj, current_user)
@@ -58,7 +61,7 @@ async def update_admin(
 async def update_admin_active_status(
     admin_uid: UUID,
     admin: dict[str, bool],
-    current_user: Admin = Security(get_current_active_user, scopes=["superuser-write"]),
+    current_user: Admin = Security(get_current_active_admin, scopes=["superuser-rw"]),
 ):
     await Admin.filter(uid=admin_uid).update(**admin)
     return await Admin_Pydantic.from_queryset_single(Admin.get(uid=admin_uid))
@@ -67,9 +70,7 @@ async def update_admin_active_status(
 @admin_router.delete("/{admin_uid}", status_code=204)
 async def delete_admin(
     admin_uid: UUID,
-    current_user: Admin = Security(
-        get_current_active_user, scopes=["admin-write", "superuser-write"]
-    ),
+    current_user: Admin = Security(get_current_active_admin, scopes=["admin-write", "superuser-rw"]),
 ):
     admin_obj = await Admin.get(uid=admin_uid)
     await authorize_obj_access(admin_obj, current_user)
@@ -78,49 +79,33 @@ async def delete_admin(
 
 
 # Admin enpoints for managing guest objects
-admin_guest_router = APIRouter(prefix="/usrs")
+admin_guest_router = APIRouter()
 
 
 @admin_guest_router.get("/", response_model=list[Guest_Pydantic])
-async def get_guests(
-    current_user: Admin = Security(get_current_active_user, scopes=["admin-read"])
-):
+async def get_guests():
     return await Guest_Pydantic.from_queryset(Guest.all())
 
 
 @admin_guest_router.get("/{guest_uid}", response_model=Guest_Pydantic)
-async def get_a_guest(
-    guest_uid: UUID, current_user: Admin = Security(get_current_active_user)
-):
-    guest_obj = await Guest.get(uid=guest_uid)
-    await authorize_obj_access(guest_obj, current_user)
+async def get_a_guest(guest_uid: UUID):
     return await Guest_Pydantic.from_queryset_single(Guest.get(uid=guest_uid))
 
 
 @admin_guest_router.put("/{guest_uid}", response_model=Guest_Pydantic)
-async def update_guest(
-    guest_uid: UUID,
-    guest: UserUpdate,
-    current_user: Admin = Security(get_current_active_user),
-):
+async def update_guest(guest_uid: UUID, guest: UserUpdate):
     await Guest.filter(uid=guest_uid).update(**guest.model_dump(exclude={"full_name"}))
     return await Guest_Pydantic.from_queryset_single(Guest.get(uid=guest_uid))
 
 
 @admin_guest_router.patch("/{guest_uid}", response_model=Guest_Pydantic)
-async def update_guest_active_status(
-    guest_uid: UUID,
-    guest: dict[str, bool],
-    current_user: Admin = Security(get_current_active_user, scopes=["admin-write"]),
-):
+async def update_guest_active_status(guest_uid: UUID, guest: dict[str, bool]):
     await Guest.filter(uid=guest_uid).update(**guest)
     return await Guest_Pydantic.from_queryset_single(Guest.get(uid=guest_uid))
 
 
 @admin_guest_router.delete("/{guest_uid}", status_code=204)
-async def admin_delete_guest(
-    guest_uid: UUID, current_user: Admin = Security(get_current_active_user)
-):
+async def admin_delete_guest(guest_uid: UUID):
     guest_obj = await Guest.get(uid=guest_uid)
     await guest_obj.delete()
     return {}
@@ -129,7 +114,7 @@ async def admin_delete_guest(
 # @admin_guest_router.get("/{guest_uid}/reservations", response_model=list[ReservationHistory])
 # async def get_guest_reservations(
 #    guest_uid: UUID,
-#    current_user: Admin = Security(get_current_active_user)
+#    current_user: Admin = Security(get_current_active_admin)
 # ):
 #    guest_obj = await Guest.get(uid=guest_uid)
 #    await authorize_obj_access(guest_obj, current_user)
@@ -139,7 +124,7 @@ async def admin_delete_guest(
 
 # @admin_guest_router.get("/{guest_uid}/invoices", response_model=list[Invoice_Pydantic])
 # async def get_guest_invoices(
-#   guest_uid: UUID, current_user: Admin = Security(get_current_active_user)
+#   guest_uid: UUID, current_user: Admin = Security(get_current_active_admin)
 # ):
 #    guest_obj = await Guest.get(uid=guest_uid)
 #    await authorize_obj_access(guest_obj, current_user)
@@ -148,4 +133,6 @@ async def admin_delete_guest(
 #    )
 
 
-admin_router.include_router(admin_guest_router)
+admin_router.include_router(
+    admin_guest_router, prefix="/guests", dependencies=[Depends(get_current_active_admin)]
+)

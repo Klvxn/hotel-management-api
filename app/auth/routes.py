@@ -3,14 +3,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 
 from ..config import settings
-from ..users.schema import UserIn, TokenResponse
-from ..users.models import BaseUser, Admin
+from ..users.schema import TokenResponse, UserIn
+from ..users.models import Admin, BaseUser
 from .utils import (
     ADMIN_SCOPES,
     SUPERUSER_SCOPES,
     authenticate_user,
-    create_access_token,
-    create_refresh_token,
+    create_auth_token,
     get_current_active_user,
 )
 
@@ -20,7 +19,6 @@ auth_router = APIRouter(tags=["Auth"])
 @auth_router.post("/login", response_model=TokenResponse)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = await authenticate_user(form_data.username, form_data.password)
-    print(user)
     if not user:
         raise HTTPException(
             status_code=401,
@@ -35,10 +33,12 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             scopes = list(ADMIN_SCOPES.keys())
         else:
             scopes = list(SUPERUSER_SCOPES.keys())
-    access_token = create_access_token(
-        data={"sub": str(user.uid), "scopes": scopes},
+    access_token = create_auth_token(
+        data={"sub": str(user.uid), "scopes": scopes}, token_type="access"
     )
-    refresh_token = create_refresh_token(data={"sub": str(user.uid), "scopes": scopes})
+    refresh_token = create_auth_token(
+        data={"sub": str(user.uid), "scopes": scopes}, token_type="refresh"
+    )
     return {"access_token": access_token, "refresh_token": refresh_token}
 
 
@@ -70,13 +70,11 @@ async def onboading_new_signee(guest: UserIn):
 async def refresh_expired_token(
     current_user: BaseUser = Depends(get_current_active_user),
 ):
-
     pass
 
 
 @auth_router.post("/log-out")
 async def log_out(current_user: BaseUser = Depends(get_current_active_user)):
-
     return {"message": "Logged out successfully"}
 
 

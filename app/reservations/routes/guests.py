@@ -53,8 +53,8 @@ def email_new_reservation(current_user: Guest, reservation: Reservation):
 
 @reservation_router.get("/", response_model=list[Reservation_Pydantic])
 async def guest_reservations(current_user: Guest = Depends(get_current_active_user)):
-    # No need to explicitly call the ```authorize_obj_access``` helper function as
-    # reservations are filtered based on ```current_user``` dependency
+    # No need to explicitly call the `authorize_obj_access` helper function as
+    # reservations are filtered based on `current_user` dependency
     return await Reservation_Pydantic.from_queryset(
         Reservation.filter(guest=current_user)
     )
@@ -68,10 +68,10 @@ async def make_reservation(
 ):
     # Check for room availability between check-in and check-out dates
     for room_number in reservation.room_numbers:
+        check_in = normalize_date(reservation.check_in_date).date()
+        check_out = normalize_date(reservation.check_out_date).date()
         if await RoomAvailability.check_room_is_available(
-            await Room.get_by_room_number(room_number),
-            normalize_date(reservation.check_in_date).date(),
-            normalize_date(reservation.check_out_date).date(),
+            room_number, check_in, check_out
         ):
             raise HTTPException(
                 400, f"Room {room_number} is not available within the selected dates"

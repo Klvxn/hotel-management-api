@@ -29,10 +29,7 @@ ADMIN_SCOPES = {
     "admin-read": "admin read only role",
     "admin-write": "admin write only role",
 }
-SUPERUSER_SCOPES = {
-    "superuser-read": "super user read access",
-    "superuser-write": "super user write access",
-}
+SUPERUSER_SCOPES = {"superuser-rw": "superuser read, write access"}
 
 scopes = {**ADMIN_SCOPES, **SUPERUSER_SCOPES}
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login", scopes=scopes)
@@ -46,23 +43,21 @@ def hash_password(plain_password):
     return pwd_context.hash(plain_password)
 
 
-def create_token(data: dict, token_type: str, expires: timedelta):
+def encode_token(data: dict, token_type: str, expires: timedelta):
     to_encode = data.copy()
-    to_encode.update({"token_type": token_type, "exp": datetime.utcnow() + expires})
+    to_encode.update({"token_type": token_type, "exp": datetime.now() + expires})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
 
-def create_access_token(data: dict):
-    return create_token(
-        data, token_type="access", expires=settings.ACCESS_TOKEN_EXPIRES
-    )
-
-
-def create_refresh_token(data: dict):
-    return create_token(
-        data, token_type="refresh", expires=settings.REFRESH_TOKEN_EXPIRES
-    )
+def create_auth_token(data: dict, token_type: str):
+    match token_type:
+        case "access":
+            return encode_token(data, token_type=token_type, expires=settings.ACCESS_TOKEN_EXPIRES)
+        case "refresh":
+            return encode_token(data, token_type=token_type, expires=settings.REFRESH_TOKEN_EXPIRES)
+        case _:
+            return
 
 
 # TODO: Revoke Access token
@@ -87,8 +82,7 @@ async def authenticate_user(email: str, password: str):
 
 
 async def get_current_user(
-    security_scope: SecurityScopes = SecurityScopes(), 
-    token: str = Depends(oauth2_scheme)
+    security_scope: SecurityScopes = SecurityScopes(), token: str = Depends(oauth2_scheme)
 ):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -134,6 +128,12 @@ async def get_current_active_user(current_user: Guest = Depends(get_current_user
     return current_user
 
 
+async def get_current_active_admin(current_user: Admin = Depends(get_current_user)):
+    if not current_user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
+
+
 async def authorize_obj_access(
     obj: Union[BaseUser, Reservation, Review],
     current_user: BaseUser,
@@ -148,12 +148,11 @@ async def authorize_obj_access(
         return True
     except AssertionError:
         raise HTTPException(403, "Unauthorized access")
-    
-    
+
+
 async def authorize_user_access(obj: BaseUser, current_user: BaseUser):
     try:
         assert obj == current_user
         return True
     except AssertionError:
         raise HTTPException(403, "Unauthorized access")
-    
